@@ -23,12 +23,11 @@ namespace RefinementSelectors {
     return stream;
   }
 
-  OptimumSelector::OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool uniform, int* tgt_quad_order)
+  OptimumSelector::OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order)
     : start_order_h(H2D_GET_H_ORDER(start_quad_order)), start_order_v(H2D_GET_V_ORDER(start_quad_order))
     , end_order_h(H2D_GET_H_ORDER(end_quad_order)), end_order_v(H2D_GET_V_ORDER(end_quad_order))
-    , uniform(uniform), tgt_quad_order(tgt_quad_order) {
-    assert_msg(!uniform || start_order_h == start_order_v, "Uniform orders requested but start orders (H:%d, V:%d) are not uniform", order_h, order_v);
-    assert_msg(start_order_h <= end_order_h && start_order_v <= end_order_v, "End orders (H:%d, V:%d) are below start orders (H:%d, V:%d)", end_order_h, end_order_v, start_order_h, start_order_v);
+    , iso_p(iso_p), tgt_quad_order(tgt_quad_order) {
+    debug_assert(start_order_h <= end_order_h && start_order_v <= end_order_v, "End orders (H:%d, V:%d) are below start orders (H:%d, V:%d).", end_order_h, end_order_v, start_order_h, start_order_v);
     reset();
   }
 
@@ -36,7 +35,7 @@ namespace RefinementSelectors {
     if (order_h >= end_order_h && order_v >= end_order_v)
       return false;
     else {
-      if (uniform) {
+      if (iso_p) {
         order_h++; order_v++;
       }
       else {
@@ -46,6 +45,7 @@ namespace RefinementSelectors {
           order_v++;
         }
       }
+
       if (tgt_quad_order != NULL)
         *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
       return true;
@@ -59,10 +59,10 @@ namespace RefinementSelectors {
       *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
   }
 
-  OptimumSelector::OptimumSelector(bool iso_only, AllowedCandidates cands_allowed, double conv_exp, int max_order, Shapeset* shapeset)
-    : Selector(max_order), iso_only(iso_only), cands_allowed(cands_allowed)
+  OptimumSelector::OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset)
+    : Selector(max_order), adapt_type(adapt_type)
     , conv_exp(conv_exp), shapeset(shapeset) {
-    assert_msg(shapeset != NULL, "Shapeset is NULL");
+    error_if(shapeset == NULL, "Shapeset is NULL");
   }
 
   void OptimumSelector::set_current_order_range(Element* element) {
@@ -74,7 +74,7 @@ namespace RefinementSelectors {
     current_min_order = 1;
   }
 
-  void OptimumSelector::append_candidates_split(const int start_quad_order, const int last_quad_order, const int split, bool uniform) {
+  void OptimumSelector::append_candidates_split(const int start_quad_order, const int last_quad_order, const int split, bool iso_p) {
     //check whether end orders are not lower than start orders
     if (H2D_GET_H_ORDER(start_quad_order) > H2D_GET_H_ORDER(last_quad_order) || H2D_GET_V_ORDER(start_quad_order) > H2D_GET_V_ORDER(last_quad_order))
       return;
@@ -87,7 +87,7 @@ namespace RefinementSelectors {
     OrderPermutator quad_perms[H2D_MAX_ELEMENT_SONS];
     for(int i = 0; i < num_sons; i++) {
       quad_orders[i] = start_quad_order;
-      quad_perms[i] = OrderPermutator(start_quad_order, last_quad_order, uniform, &quad_orders[i]);
+      quad_perms[i] = OrderPermutator(start_quad_order, last_quad_order, iso_p, &quad_orders[i]);
     }
     for(int i = num_sons; i < H2D_MAX_ELEMENT_SONS; i++)
       quad_orders[i] = 0;
@@ -124,46 +124,62 @@ namespace RefinementSelectors {
     if (candidates.capacity() < H2DRS_ASSUMED_MAX_CANDS)
       candidates.reserve(H2DRS_ASSUMED_MAX_CANDS);
 
-    if (cands_allowed == H2DRS_CAND_H_ONLY) {
-      int quad_orders[H2D_MAX_ELEMENT_SONS] = { quad_order, 0, 0, 0};
-      candidates.push_back(Cand(H2D_REFINEMENT_P, quad_orders));
-      quad_orders[0] = quad_orders[1] = quad_orders[2] = quad_orders[3] = quad_order;
-      candidates.push_back(Cand(H2D_REFINEMENT_H, quad_orders));
-      if (!tri && (e->iro_cache < 8) && !iso_only) {
-        quad_orders[2] = quad_orders[3] = 0;
-        candidates.push_back(Cand(H2D_REFINEMENT_ANISO_V, quad_orders));
-        candidates.push_back(Cand(H2D_REFINEMENT_ANISO_H, quad_orders));
-      }
+    //generate all P-candidates (start from intention of generating all possible candidates and restrict it according to the given adapt-type)
+    bool iso_p = false;
+    int start_quad_order = quad_order;
+    int last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_p_order_h, order_h+H2DRS_MAX_ORDER_INC), std::min(max_p_order_v, order_v+H2DRS_MAX_ORDER_INC));
+    switch(adapt_type) {
+      case H2D_H_ISO:
+      case H2D_H_ANISO:
+        last_quad_order = start_quad_order; break; //no P-candidates except the original candidate
+
+      case H2D_P_ISO:
+      case H2D_HP_ISO:
+      case H2D_HP_ANISO_H:
+        iso_p = true; break; //iso change of orders
     }
-    else {
-      //prepare P-candidates
-      int last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_p_order_h, order_h+2), std::min(max_p_order_v, order_v+2));
-      append_candidates_split(quad_order, last_quad_order, H2D_REFINEMENT_P, tri || iso_only);
+    append_candidates_split(quad_order, last_quad_order, H2D_REFINEMENT_P, tri || iso_p);
 
-      if (cands_allowed == H2DRS_CAND_HP) {
-        //prepare HP-candidates
-        int start_order_h = std::max(current_min_order, (order_h+1) / 2), start_order_v = std::max(current_min_order, (order_v+1) / 2);
-        int start_quad_order = H2D_MAKE_QUAD_ORDER(start_order_h, start_order_v);
-        last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_ha_order_h, std::min(start_order_h + 3, order_h)), std::min(max_ha_order_v, std::min(start_order_v + 3, order_v)));
-        append_candidates_split(start_quad_order, last_quad_order, H2D_REFINEMENT_H, tri || iso_only);
+    //generate all H-candidates
+    iso_p = false;
+    int start_order_h = std::max(current_min_order, (order_h+1) / 2), start_order_v = std::max(current_min_order, (order_v+1) / 2);
+    start_quad_order = H2D_MAKE_QUAD_ORDER(start_order_h, start_order_v);
+    last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_ha_order_h, std::min(start_order_h + H2DRS_MAX_ORDER_INC, order_h)), std::min(max_ha_order_v, std::min(start_order_v + H2DRS_MAX_ORDER_INC, order_v)));
+    switch(adapt_type) {
+      case H2D_H_ISO:
+      case H2D_H_ANISO:
+        last_quad_order = start_quad_order; break; //no only one candidate will be created
 
-        //prepare ANISO-candidates
-        if (!tri && !iso_only && (e->iro_cache < 8)) {
-          //horizontal
-          start_quad_order = H2D_MAKE_QUAD_ORDER(order_h, std::max(current_min_order, (order_v+1) / 2));
-          last_quad_order = H2D_MAKE_QUAD_ORDER(order_h, std::min(max_ha_order_v, H2D_GET_V_ORDER(start_quad_order)+1));
-          append_candidates_split(start_quad_order, last_quad_order, H2D_REFINEMENT_ANISO_H, false);
+      case H2D_P_ISO:
+      case H2D_P_ANISO:
+        last_quad_order = 0; break; //no H-candidate will be generated
 
-          //vertical
-          start_quad_order = H2D_MAKE_QUAD_ORDER(std::max(current_min_order, (order_h+1) / 2), order_v);
-          last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_ha_order_h, H2D_GET_H_ORDER(start_quad_order)+1), order_v);
-          append_candidates_split(start_quad_order, last_quad_order, H2D_REFINEMENT_ANISO_V, false);
-        }
+      case H2D_HP_ISO:
+      case H2D_HP_ANISO_P:
+        iso_p = true; break; //iso change of orders
+    }
+    append_candidates_split(start_quad_order, last_quad_order, H2D_REFINEMENT_H, tri || iso_p);
+
+    //generate all ANISO-candidates
+    if (!tri && e->iro_cache < 8 //TODO: find out what iro_cache does and why 8
+      && (adapt_type == H2D_H_ANISO || adapt_type == H2D_HP_ANISO_H || adapt_type == H2D_HP_ANISO)) { 
+      iso_p = false;
+      int start_quad_order_hz = H2D_MAKE_QUAD_ORDER(order_h, std::max(current_min_order, (order_v+1) / 2));
+      int last_quad_order_hz = H2D_MAKE_QUAD_ORDER(std::min(max_ha_order_h, order_h+H2DRS_MAX_ORDER_INC), std::min(order_v, H2D_GET_V_ORDER(start_quad_order)+H2DRS_MAX_ORDER_INC));
+      int start_quad_order_vt = H2D_MAKE_QUAD_ORDER(std::max(current_min_order, (order_h+1) / 2), order_v);
+      int last_quad_order_vt = H2D_MAKE_QUAD_ORDER(std::min(order_h, H2D_GET_H_ORDER(start_quad_order)+H2DRS_MAX_ORDER_INC), std::min(max_ha_order_v, order_v+H2DRS_MAX_ORDER_INC));
+      switch(adapt_type) {
+        case H2D_H_ANISO:
+          last_quad_order_hz = start_quad_order_hz;
+          last_quad_order_vt = start_quad_order_vt;
+          break; //no only one candidate will be created
       }
+      append_candidates_split(start_quad_order_hz, last_quad_order_hz, H2D_REFINEMENT_ANISO_H, iso_p);
+      append_candidates_split(start_quad_order_vt, last_quad_order_vt, H2D_REFINEMENT_ANISO_V, iso_p);
     }
   }
 
-  void OptimumSelector::calc_cands_max_order(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const {
+  void OptimumSelector::evaluate_cands(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const {
     int order_h_cand_h = 0, order_v_cand_h = 0;
     int order_h_cand_p = 0, order_v_cand_p = 0;
     int order_h_cand_aniso = 0, order_v_cand_aniso = 0;
@@ -280,25 +296,48 @@ namespace RefinementSelectors {
     evaluate_cands_dof(e, rsln);
   }
 
+  bool OptimumSelector::compare_cand_score(const Cand& a, const Cand& b) {
+    return a.score > b.score;
+  }
+
   void OptimumSelector::select_best_candidate(Element* e, const double avg_error, const double dev_error, int* selected_cand, int* selected_h_cand) {
     // select an above-average candidate with the steepest error decrease
-    int imax = 0, h_imax = 0;
-    double score, maxscore = 0.0, h_maxscore = 0.0;
 
+    //calculate score of candidates
     Cand& unrefined = candidates[0];
-    for (unsigned i = 1; i < candidates.size(); i++)
-    {
+    const int num_cands = (int)candidates.size();
+    unrefined.score = 0;
+    for (int i = 1; i < num_cands; i++) {
       Cand& cand = candidates[i];
-
       if ((log10(cand.error) < (avg_error + dev_error)) && (cand.dofs > unrefined.dofs))
-      {
-        score = (log10(unrefined.error) - log10(cand.error)) / pow(cand.dofs - unrefined.dofs, conv_exp);
-
-        if (score > maxscore) { maxscore = score; imax = i; }
-        if ((cand.split == 0) && (score > h_maxscore)) { h_maxscore = score; h_imax = i; }
-      }
+        candidates[i].score = (log10(unrefined.error) - log10(cand.error)) / pow(cand.dofs - unrefined.dofs, conv_exp);
+      else
+        candidates[i].score = 0;
     }
 
+    //sort according to the score
+    if (num_cands > 2)
+      std::sort(candidates.begin()+1, candidates.end(), compare_cand_score);
+
+    //find first valid score (if two different candidates that have aniso refinement has almost the same score, skip them)
+    int imax = 1;
+    while (imax < num_cands && (candidates[imax].split == H2D_REFINEMENT_ANISO_H || candidates[imax].split == H2D_REFINEMENT_ANISO_V) && candidates[imax].score > 0 //if a candidate is aniso (if any) with valid score
+      && imax < (num_cands - 1) && (candidates[imax].split == H2D_REFINEMENT_ANISO_H || candidates[imax].split == H2D_REFINEMENT_ANISO_V) && candidates[imax].split != candidates[imax+1].split //and the next cadidate is aniso (if any) of a different direction
+      && abs(candidates[imax].score - candidates[imax].score) < H2DRS_SCORE_DIFF_ZERO) //and their scores are almost the same
+      imax += 2; //skip them
+
+    //find valid H-refinement candidate
+    int h_imax = imax;
+    while (h_imax < num_cands && candidates[h_imax].split != H2D_REFINEMENT_H)
+      h_imax++;
+
+    //make sure the result is valid: index is valid, selected candidate has a valid score
+    if (imax >= num_cands || candidates[imax].score == 0)
+      imax = 0;
+    if (h_imax >= num_cands || candidates[h_imax].score == 0)
+      h_imax = 0;
+
+    //report result
     *selected_cand = imax;
     *selected_h_cand = h_imax;
   }
@@ -313,8 +352,7 @@ namespace RefinementSelectors {
     }
 
     //check validity
-    assert_msg(!iso_only || order_h == order_v, "Iso_only requested but order (%d, %d) of element %d does not match", order_h, order_v);
-    assert_msg(std::max(order_h, order_v) <= H2DRS_MAX_ORDER, "Given order (%d, %d) exceedes the maximum supported order %d", order_h, order_v, H2DRS_MAX_ORDER);
+    assert_msg(std::max(order_h, order_v) <= H2DRS_MAX_ORDER, "Given order (%d, %d) exceedes the maximum supported order %d.", order_h, order_v, H2DRS_MAX_ORDER);
 
     //set shapeset mode
     if (element->is_triangle())
@@ -383,8 +421,13 @@ namespace RefinementSelectors {
     else {
       //calculate new quad_orders
       int quad_order = orig_quad_order;
+<<<<<<< HEAD
       if (cands_allowed != H2DRS_CAND_H_ONLY) {
         int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
+=======
+      if (adapt_type != H2D_H_ISO && adapt_type != H2D_H_ANISO) { //H_ISO and H_ANISO has to keep given order
+        int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
+>>>>>>> Reorganized adaptivity classes
         switch(refinement) {
           case H2D_REFINEMENT_H:
             order_h = std::max(1, (order_h+1)/2);

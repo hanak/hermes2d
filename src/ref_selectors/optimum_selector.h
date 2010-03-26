@@ -21,12 +21,30 @@
 
 #define H2DRS_ASSUMED_MAX_CANDS 512 ///< A maximum estimated number of candidates. Used for purpose of reserving a space.
 
+#define H2D_NUM_MODES 2 ///< A number of modes.
+
+//TODO: find out why 20, 2*(H2DRS_MAX_ORDER+1)?
+#define H2DRS_INTR_GIP_ORDER 20 ///< Constant GIP order used by during projection to integrate.
+#define H2DRS_MAX_ORDER_INC 2 ///< Maximum increate of order in candidate.
+
+#define H2DRS_SCORE_DIFF_ZERO 1E-12 ///< A threshold of difference between scores which is considered zero.
+
+#define H2D_FN_VALUE  0 ///< Index of a function value.
+#define H2D_FN_DX     1 ///< Index of df/dx.
+#define H2D_FN_DY     2 ///< Index of df/dy.
+
 namespace RefinementSelectors {
 
-  enum AllowedCandidates { ///< Candidate types allowed.
-    H2DRS_CAND_HP, ///< HP-candidates.
-	  H2DRS_CAND_H_ONLY, ///< H-candidates only candidates.
-	  H2DRS_CAND_P_ONLY, ///< P-candidates only.
+  /// Type of adaptivity. Influences standard generation of candidates.
+  enum AdaptType {
+    H2D_P_ISO,
+    H2D_P_ANISO,
+    H2D_H_ISO,
+    H2D_H_ANISO,
+    H2D_HP_ISO,
+    H2D_HP_ANISO_H,
+    H2D_HP_ANISO_P,
+    H2D_HP_ANISO
   };
 
   class H2D_API OptimumSelector : public Selector { ///< Selector that chooses an optimal candidates based on error decrease per a new DOF.
@@ -36,6 +54,7 @@ namespace RefinementSelectors {
       int dofs;  ///< Estimated number of DOFs.
       int split; ///< Operation.
       int p[4]; ///< Encoded orders of sons. If V order is zero, V order is equal to U order.
+      double score; ///< Score of candidate.
 
       Cand() {};
       Cand(const int split, const int order_sons[4])
@@ -76,11 +95,11 @@ namespace RefinementSelectors {
       int order_h, order_v; ///< Current order
       int start_order_h, start_order_v; ///< Start orders
       int end_order_h, end_order_v; ///< End orders
-      bool uniform; /// True, if order step is uniform.
+      bool iso_p; /// True, if increase is iso.
       int* tgt_quad_order; ///< Target quad order to which the order is written automatically. NULL if none.
     public:
       OrderPermutator () {};
-      OrderPermutator (int start_quad_order, int end_quad_order, bool uniform, int* tgt_quad_order = NULL);
+      OrderPermutator (int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order = NULL);
       bool next(); ///< Returns false if there is not next combination.
       void reset(); ///< Resets permutator to the start order.
       int get_order_h() const { return order_h; }; ///< Returns horizontal order.
@@ -88,11 +107,10 @@ namespace RefinementSelectors {
       int get_quad_order() const { return H2D_MAKE_QUAD_ORDER(order_h, order_v); }; ///< Returns quad order.
     };
 
-    bool iso_only; ///< True if ANISO-candidates are not allowed.
-    AllowedCandidates cands_allowed; ///< Allowed candidate types.
+    AdaptType adapt_type; ///< Allowed candidate types.
 	  double conv_exp; ///< Convergence power. Modifies difference between DOFs before they are used to calculate the score.
     std::vector<Cand> candidates; ///< A vector of candidates. The first candidate is the original element.
-    void calc_cands_max_order(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const; ///< Calculates maximum quad orders of candidates.
+    void evaluate_cands(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const; ///< Calculates maximum quad orders of candidates. Returns 0 if no candidates of given type are generated.
 
     void append_candidates_split(const int start_quad_order, const int last_order, const int split, bool uniform); ///< Creates candidates of a given split-type.
 
@@ -102,6 +120,9 @@ namespace RefinementSelectors {
 
     virtual void evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error) = 0; ///< Calculates error of candidates.
     virtual void evaluate_cands_dof(Element* e, Solution* rsln); ///< Calculates DOFs of candidates.
+
+  private:
+    static bool compare_cand_score(const Cand& a, const Cand& b); ///< True if score a is greater than score b
 
   protected: //orders and their range
     int current_max_order; ///< Current maximum order.
@@ -113,7 +134,7 @@ namespace RefinementSelectors {
     Shapeset *shapeset; ///< A shapeset used for projections.
 
   public:
-    OptimumSelector(bool iso_only, AllowedCandidates cands_allowed, double conv_exp, int max_order, Shapeset* shapeset);
+    OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset);
     virtual ~OptimumSelector() {};
     virtual bool select_refinement(Element* element, int quad_order, Solution* rsln, ElementToRefine& refinement); ///< Selects refinement.
     virtual void update_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.

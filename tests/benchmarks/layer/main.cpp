@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
     rs.solve(1, &sln_fine);
 
     // calculate error estimate wrt. fine mesh solution
-    H1AdaptHP hp(1, &space);
+    H1Adapt hp(&space);
     double err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
 
     // time measurement
@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
     // if err_est too large, adapt the mesh
     if (err_est < ERR_STOP) done = true;
     else {
-      hp.adapt(THRESHOLD, STRATEGY, &selector, MESH_REGULARITY);
+      hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndofs = space.assign_dofs();
       if (ndofs >= NDOF_STOP) done = true;
     }

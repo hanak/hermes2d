@@ -14,8 +14,8 @@ set(SRC
        trans.cpp
 
        refinement_type.cpp element_to_refine.cpp
-       ref_selectors/selector.cpp ref_selectors/optimum_selector.cpp ref_selectors/proj_based_selector.cpp ref_selectors/h1_uniform_hp.cpp ref_selectors/h1_nonuniform_hp.cpp
-       adapt_h1.cpp adapt_ortho_h1.cpp adapt_ortho_hcurl.cpp adapt_ortho_l2.cpp
+       ref_selectors/selector.cpp ref_selectors/optimum_selector.cpp ref_selectors/proj_based_selector.cpp ref_selectors/h1_proj_based_selector.cpp
+       adapt.cpp h1_adapt.cpp
 
        common.cpp common_time_period.cpp
 	   matrix.cpp hermes2d.cpp weakform.cpp linsystem.cpp

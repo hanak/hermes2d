@@ -22,19 +22,71 @@ namespace RefinementSelectors {
   typedef double SonProjectionError[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2]; ///< Error of a son of a candidate for various order combinations. The maximum allowed order is H2DRS_MAX_ORDER+1.
 
   class H2D_API ProjBasedSelector : public OptimumSelector {
-  protected:
+  public: //API
+    ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset);
+    virtual ~ProjBasedSelector();
+
+  protected: //error evaluation
+    template<typename T>
+    struct ValueCacheItem { ///< An item of a value cache.
+      inline bool is_valid() const { return state != 0; }; ///< Returns true, if value is valid.
+      inline void mark_invalid() { state = 0; }; ///< Marks a value as invalid.
+      inline void mark(int new_state = 1) { state = new_state; }; ///< Sets state of a value cache.
+      inline void set(T new_value) { value = new_value; }; ///< Sets a new value.
+      inline T get() { return value; }; ///< Returns value.
+    private:
+      T value; ///< Value.
+      int state; ///< State.
+    };
+
+    double** proj_matrices[H2DRS_MAX_ORDER+1][H2DRS_MAX_ORDER+1]; ///< An array of projection matrices. Used functions are defined through shape_inx. Index to the array is the size. All matrices are square. If record is NULL, the corresponding matrix has to be calculated.
+    ValueCacheItem<scalar>* rhs_cache; ///< An array of RHS values. Valid only during evalution of proj_calc_err_son.
+
+    virtual void evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error); ///< Calculates error of candidates.
+
     /// \brief Calculate various projection errors for sons of a candidates of given combination of orders. Errors are not normalized. Overloadable.
     /// \param[in] e Element which is being processed.
     /// \param[in] rsln Reference solution.
     /// \param[out] herr Errors of sons of H-candidate.
     /// \param[out] anisoerr Errors of sons of ANISO-candidates.
     /// \param[out] perr Errros of sons of P-candidates.
-    virtual void calc_projection_errors(Element* e, const int max_quad_order_h, const int max_quad_order_p, const int max_quad_order_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr) = 0;
-    virtual void evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error); ///< Calculates error of candidates.
+    virtual void calc_projection_errors(Element* e, const int max_quad_order_h, const int max_quad_order_p, const int max_quad_order_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr);
+    void calc_proj_error_cand_son(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_elems, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, int max_quad_order, SonProjectionError errors); ///< Calculate projection errors.
 
-  public:
-    ProjBasedSelector(bool iso_only, AllowedCandidates cands_allowed, double conv_exp, int max_order, Shapeset* shapeset)
-	  : OptimumSelector(iso_only, cands_allowed, conv_exp, max_order, shapeset) {};
+  protected: //projection
+    struct ElemProj { ///< Element projection parameters.
+      int* shape_inxs; ///< Shape indices
+      int num_shapes; ///< Number of shape indices.
+      scalar* shape_coefs; ///< Coefficients of shape indices of a projection.
+      int max_quad_order; ///< Maximum quad order of the projection.
+    };
+    struct ElemGIP { ///< GIP on a element.
+      double3* gip_points; ///< GIP points and weights.
+      int num_gip_points; ///< A number of GIP points.
+      scalar** rvals; ///< Values of a reference solution at GIP.
+    };
+    struct ElemSubTrf { ///< Transformation from a coordinate system of a sub-element to coordinate system of an element.
+      Trf* trf; ///< Transformation.
+      double coef_mx, coef_my; ///< Differentials correction coefficients.
+    };
+
+    virtual double** build_projection_matrix(Shapeset& shapeset, double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes) = 0; ///< Builds a projection matrix.
+    virtual scalar evaluate_rsh_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) = 0; ///> Evaluate a single value of the right side for a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
+    virtual double evaluate_error_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) = 0; ///> Evaluate an error of a projection on a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
+
+  protected: //shape functions
+    struct ShapeInx { ///< A shape index.
+      int order_h; ///< Order in H direction. Zero if the shape is just along V-direction.
+      int order_v; ///< Order in H direction. Zero if the shape is just along V-direction.
+      int inx; ///< Index of a shape.
+      ShapeInx(int order_h, int order_v, int inx) : order_h(order_h), order_v(order_v), inx(inx) {};
+    };
+
+    std::vector<ShapeInx> shape_indices[H2D_NUM_MODES]; ///< Shape indices.
+    int max_shape_inx[H2D_NUM_MODES]; ///< Maximum of shape indices.
+    int next_order_shape[H2D_NUM_MODES][H2DRS_MAX_ORDER+1]; ///< An index of a shape index of the next order.
+
+    void build_shape_indices(const int mode); ///< Build shape indices.
   };
 
 }

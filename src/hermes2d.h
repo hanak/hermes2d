@@ -81,13 +81,10 @@
 #include "ref_selectors/selector.h"
 #include "ref_selectors/optimum_selector.h"
 #include "ref_selectors/proj_based_selector.h"
-#include "ref_selectors/h1_uniform_hp.h"
-#include "ref_selectors/h1_nonuniform_hp.h"
+#include "ref_selectors/h1_proj_based_selector.h"
 
-#include "adapt_h1.h"
-#include "adapt_ortho_h1.h"
-#include "adapt_ortho_l2.h"
-#include "adapt_ortho_hcurl.h"
+#include "adapt.h"
+#include "h1_adapt.h"
 
 void hermes2d_initialize(int* argc = NULL, char* argv[] = NULL);
 void hermes2d_finalize(bool force_quit = false);
