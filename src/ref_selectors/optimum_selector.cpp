@@ -319,12 +319,17 @@ namespace RefinementSelectors {
     if (num_cands > 2)
       std::sort(candidates.begin()+1, candidates.end(), compare_cand_score);
 
-    //find first valid score (if two different candidates that have aniso refinement has almost the same score, skip them)
+    //find first valid score that diffres from the next scores
     int imax = 1;
-    while (imax < num_cands && (candidates[imax].split == H2D_REFINEMENT_ANISO_H || candidates[imax].split == H2D_REFINEMENT_ANISO_V) && candidates[imax].score > 0 //if a candidate is aniso (if any) with valid score
-      && imax < (num_cands - 1) && (candidates[imax].split == H2D_REFINEMENT_ANISO_H || candidates[imax].split == H2D_REFINEMENT_ANISO_V) && candidates[imax].split != candidates[imax+1].split //and the next cadidate is aniso (if any) of a different direction
-      && abs(candidates[imax].score - candidates[imax].score) < H2DRS_SCORE_DIFF_ZERO) //and their scores are almost the same
-      imax += 2; //skip them
+    while ((imax+1) < num_cands && abs(candidates[imax].score - candidates[imax+1].score) < H2DRS_SCORE_DIFF_ZERO) {
+      //find the first candidate with a different score
+      Cand& cand_current = candidates[imax];
+      int imax_end = imax + 2;
+      while (imax_end < num_cands && abs(cand_current.score - candidates[imax_end].score) < H2DRS_SCORE_DIFF_ZERO)
+        imax_end++;
+
+      imax = imax_end;
+    }
 
     //find valid H-refinement candidate
     int h_imax = imax;

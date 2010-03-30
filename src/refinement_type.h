@@ -23,6 +23,7 @@
 #define H2D_REFINEMENT_ANISO_H 1
 #define H2D_REFINEMENT_ANISO_V 2
 
+extern H2D_API bool is_refin_aniso(const int refin_type); ///< Returns true, if refinement is aniso.
 extern H2D_API int get_refin_sons(const int refin_type); ///< Returns number of sons.
 extern H2D_API const std::string get_refin_str(const int refin_type); ///< Returns name of a refinement type value. Used for debugging purposes.
 

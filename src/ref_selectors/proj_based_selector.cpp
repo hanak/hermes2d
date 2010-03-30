@@ -72,12 +72,12 @@ namespace RefinementSelectors {
       }
 
       //bubble functions
-      int bubble_order = (mode == MODE_QUAD) ? make_quad_order(i, i) : i;
+      int bubble_order = (mode == MODE_QUAD) ? H2D_MAKE_QUAD_ORDER(i, i) : i;
       int num_bubbles = shapeset->get_num_bubbles(bubble_order);
       int* bubble_inxs = shapeset->get_bubble_indices(bubble_order);
       for(int j = 0; j < num_bubbles; j++) {
         int quad_order = shapeset->get_order(bubble_inxs[j]);
-        int order_h = get_h_order(quad_order), order_v = get_v_order(quad_order);
+        int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
         if (std::max(order_h, order_v) == i)
           indices.push_back(ShapeInx(order_h, order_v, bubble_inxs[j]));
       }
@@ -117,8 +117,9 @@ namespace RefinementSelectors {
           c.error = 0.0;
           for (int j = 0; j < H2D_MAX_ELEMENT_SONS; j++) {
             int order = H2D_GET_H_ORDER(c.p[j]);
-            c.error += herr[j][order][order]; // * 0.25; // spravny vypocet chyby, ??? candidate error is composed of four sons
+            c.error += herr[j][order][order];
           }
+          c.error *= 0.25; //convert to reference domain of a candidate because every son of a candidate is integrated over a reference domain;
           break;
 
         case H2D_REFINEMENT_P:
@@ -138,8 +139,9 @@ namespace RefinementSelectors {
           c.error = 0.0;
           for (int j = 0; j < H2D_MAX_ELEMENT_SONS; j++) {
             int order_h = H2D_GET_H_ORDER(c.p[j]), order_v = H2D_GET_V_ORDER(c.p[j]);
-            c.error += herr[j][order_h][order_v]; // * 0.25; // spravny vypocet chyby, ??? candidate error is composed of four sons
+            c.error += herr[j][order_h][order_v];
           }
+          c.error *= 0.25; //convert to reference domain of a candidate because every son of a candidate is integrated over a reference domain;
           break;
 
         case H2D_REFINEMENT_ANISO_H:
@@ -147,7 +149,8 @@ namespace RefinementSelectors {
           {
             c.error = 0.0;
             for (int j = 0; j < 2; j++)
-              c.error += anisoerr[(c.split == H2D_REFINEMENT_ANISO_H) ? j : j+2][H2D_GET_H_ORDER(c.p[j])][H2D_GET_V_ORDER(c.p[j])]; // * 0.5;  // spravny vypocet chyby, ??? average of errors on splot element (sons)
+              c.error += anisoerr[(c.split == H2D_REFINEMENT_ANISO_H) ? j : j+2][H2D_GET_H_ORDER(c.p[j])][H2D_GET_V_ORDER(c.p[j])];
+            c.error *= 0.5;  //convert to reference domain of a candidate because every son of a candidate is integrated over a reference domain;
           }
           break;
 
@@ -177,9 +180,9 @@ namespace RefinementSelectors {
   }
 
   void ProjBasedSelector::calc_projection_errors(Element* e, const int max_quad_order_h, const int max_quad_order_p, const int max_quad_order_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr) {
-    assert_msg(get_h_order(max_quad_order_h) <= H2DRS_MAX_ORDER && get_v_order(max_quad_order_h) <= H2DRS_MAX_ORDER, "E maximum allowed order of a son of H-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, get_h_order(max_quad_order_h), get_v_order(max_quad_order_h));
-    assert_msg(get_h_order(max_quad_order_p) <= H2DRS_MAX_ORDER && get_v_order(max_quad_order_p) <= H2DRS_MAX_ORDER, "E maximum allowed order of a son of P-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, get_h_order(max_quad_order_p), get_v_order(max_quad_order_p));
-    assert_msg(get_h_order(max_quad_order_aniso) <= H2DRS_MAX_ORDER && get_v_order(max_quad_order_aniso) <= H2DRS_MAX_ORDER, "E maximum allowed order of a son of ANISO-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, get_h_order(max_quad_order_aniso), get_v_order(max_quad_order_aniso));
+    assert_msg(H2D_GET_H_ORDER(max_quad_order_h) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(max_quad_order_h) <= H2DRS_MAX_ORDER, "E maximum allowed order of a son of H-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(max_quad_order_h), H2D_GET_V_ORDER(max_quad_order_h));
+    assert_msg(H2D_GET_H_ORDER(max_quad_order_p) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(max_quad_order_p) <= H2DRS_MAX_ORDER, "E maximum allowed order of a son of P-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(max_quad_order_p), H2D_GET_V_ORDER(max_quad_order_p));
+    assert_msg(H2D_GET_H_ORDER(max_quad_order_aniso) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(max_quad_order_aniso) <= H2DRS_MAX_ORDER, "E maximum allowed order of a son of ANISO-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(max_quad_order_aniso), H2D_GET_V_ORDER(max_quad_order_aniso));
 
     int mode = e->get_mode();
 
@@ -275,10 +278,10 @@ namespace RefinementSelectors {
 
     //calculate for all orders
     double sub_area_corr_coef = 1.0 / num_sub;
-    OrderPermutator order_perm(make_quad_order(1, 1), max_quad_order, mode == MODE_TRIANGLE);
+    OrderPermutator order_perm(H2D_MAKE_QUAD_ORDER(1, 1), max_quad_order, mode == MODE_TRIANGLE);
     do {
       int quad_order = order_perm.get_quad_order();
-      int order_h = get_h_order(quad_order), order_v = get_v_order(quad_order);
+      int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
 
       //build a list of shape indices from the full list
       int num_shapes = 0;

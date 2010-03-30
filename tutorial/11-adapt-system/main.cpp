@@ -5,6 +5,8 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
 
+using namespace RefinementSelectors;
+
 // This example explains how to use the multimesh adaptive hp-FEM,
 // where different physical fields (or solution components) can be
 // approximated using different meshes and equipped with mutually
@@ -55,22 +57,14 @@ const int STRATEGY = 1;          // Adaptive strategy:
                                  // STRATEGY = 2 ... refine all elements whose error is larger
                                  //   than THRESHOLD.
                                  // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const int ADAPT_TYPE = 0;        // Type of automatic adaptivity:
-                                 // ADAPT_TYPE = 0 ... adaptive hp-FEM (default),
-                                 // ADAPT_TYPE = 1 ... adaptive h-FEM,
-                                 // ADAPT_TYPE = 2 ... adaptive p-FEM.
-const bool ISO_ONLY = false;     // Isotropic refinement flag (concerns quadrilateral elements only).
-                                 // ISO_ONLY = false ... anisotropic refinement of quad elements
-                                 // is allowed (default),
-                                 // ISO_ONLY = true ... only isotropic refinements of quad elements
-                                 // are allowed.
+AdaptType ADAPT_TYPE = H2D_HP_ANISO;        // Type of automatic adaptivity:
 const int MESH_REGULARITY = -1;  // Maximum allowed level of hanging nodes:
                                  // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                  // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
                                  // MESH_REGULARITY = 2 ... at most two-level hanging nodes, etc.
                                  // Note that regular meshes are not supported, this is due to
                                  // their notoriously bad performance.
-const double CONV_EXP = 1.0;     // Default value is 1.0. This parameter influences the selection of
+const double CONV_EXP = 0.5;     // Default value is 1.0. This parameter influences the selection of
                                  // cancidates in hp-adaptivity. See get_optimal_refinement() for details.
 const int MAX_ORDER = 10;        // Maximum allowed element degree
 const double ERR_STOP = 0.01;    // Stopping criterion for adaptivity (rel. error tolerance between the
@@ -183,6 +177,9 @@ int main(int argc, char* argv[])
   // DOF and CPU convergence graphs
   SimpleGraph graph_dof, graph_cpu;
 
+  // refinement selector
+  H1ProjBasedSelector selector(ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
+
   // adaptivity loop
   int it = 1;
   bool done = false;
@@ -242,6 +239,14 @@ int main(int argc, char* argv[])
     info("Exact solution error for u (H1 norm): %g%%", u_error);
     info("Exact solution error for v (H1 norm): %g%%", v_error);
     info("Exact solution error (maximum): %g%%", error);
+
+    // calculate element errors and total error estimate
+    H1Adapt hp(Tuple<Space*>(&uspace, &vspace));
+    hp.set_biform(0, 0, bilinear_form_0_0<scalar, scalar>, bilinear_form_0_0<Ord, Ord>);
+    hp.set_biform(0, 1, bilinear_form_0_1<scalar, scalar>, bilinear_form_0_1<Ord, Ord>);
+    hp.set_biform(1, 0, bilinear_form_1_0<scalar, scalar>, bilinear_form_1_0<Ord, Ord>);
+    hp.set_biform(1, 1, bilinear_form_1_1<scalar, scalar>, bilinear_form_1_1<Ord, Ord>);
+    double err_est = hp.calc_error(Tuple<Solution*>(&u_sln_coarse, &v_sln_coarse), Tuple<Solution*>(&u_sln_fine, &v_sln_fine)) * 100;
     info("Estimate of error wrt. ref. solution (energy norm): %g%%", err_est);
 
     // add entry to DOF convergence graph
@@ -260,9 +265,9 @@ int main(int argc, char* argv[])
     // if err_est too large, adapt the mesh
     if (error < ERR_STOP) done = true;
     else {
-      hp.adapt(THRESHOLD, STRATEGY, ADAPT_TYPE, ISO_ONLY, MESH_REGULARITY, CONV_EXP, MAX_ORDER, MULTI == true ? false : true);
+      hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY, MULTI == true ? false : true);
       ndof = assign_dofs(2, &uspace, &vspace);
-      if (ndof >= NDOF_STOP) done = true;
+      if (ndofs >= NDOF_STOP) done = true;
     }
 
     //time measurement
