@@ -4,6 +4,8 @@
 #include <solver_umfpack.h>
 #include "functions.h"
 
+using namespace RefinementSelectors;
+
 // This test tests projection of a candidate in H1 space on a quad.
 
 /* global definitions */
@@ -21,34 +23,20 @@ struct TestCase {
   std::string title;
   ValueFunction func_val, func_dx, func_dy;
   int func_quad_order, start_quad_order;
-  int res_split;
-  int4 res_orders;
 
   TestCase(std::string title
     , ValueFunction func_val, ValueFunction func_dx, ValueFunction func_dy
-    , int start_quad_order, int func_quad_order
-    , int res_split, int res_order0, int res_order1 = 0, int res_order2 = 0, int res_order3 = 0)
+    , int start_quad_order, int func_quad_order)
     : title(title), func_val(func_val), func_dx(func_dx), func_dy(func_dy)
-    , start_quad_order(start_quad_order), func_quad_order(func_quad_order), res_split(res_split) {
-      res_orders[0] = res_order0;
-      res_orders[1] = res_order1;
-      res_orders[2] = res_order2;
-      res_orders[3] = res_order3;
-  };
-  bool is_match(const ElementToRefine& refin) { ///< Returns true in a case of a match.
-    if (res_split != refin.split) {
-      info("split type %d does not match, expected %d", res_split, refin.split);
-      return false;
-    }
-    int num_sons = refin.get_num_sons();
+    , start_quad_order(start_quad_order), func_quad_order(func_quad_order) {};
+
+  bool should_match(const OptimumSelector::Cand& cand) { ///< Returns true if the refinement should match the function.
+    int order_h = H2D_GET_H_ORDER(func_quad_order), order_v = H2D_GET_V_ORDER(func_quad_order);
+    int num_sons = cand.get_num_sons();
     for(int i = 0; i < num_sons; i++) {
-      if (res_orders[i] != refin.p[i]) {
-        info("order (%d, %d) of son %d does not match, expected (%d, %d)"
-          , H2D_GET_H_ORDER(refin.p[i]), H2D_GET_V_ORDER(refin.p[i])
-          , i
-          , H2D_GET_H_ORDER(res_orders[i]), H2D_GET_V_ORDER(res_orders[i]));
+      int son_order_h = H2D_GET_H_ORDER(cand.p[i]), son_order_v = H2D_GET_V_ORDER(cand.p[i]);
+      if (son_order_h < order_h || son_order_v < order_v)
         return false;
-      }
     }
     return true;
   };
@@ -137,15 +125,13 @@ bool init(bool tri) {
 
     //test cases
     if (tri) {
-      test_cases.push_back(TestCase("x^2 y^2", func_x2y2_dx, func_x2y2_dx, func_x2y2_dy, 1, 2+2, H2D_REFINEMENT_P, H2D_MAKE_QUAD_ORDER(2, 0)));
+      test_cases.push_back(TestCase("x^2 y^2", func_x2y2_dx, func_x2y2_dx, func_x2y2_dy, 1, 2+2));
     }
     else {
-      test_cases.push_back(TestCase("x^2", func_x2_val, func_x2_dx, func_x2_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(2,0), H2D_REFINEMENT_P, H2D_MAKE_QUAD_ORDER(2,1)));
-      //test_cases.push_back(TestCase("abs(y)", func_absy_val, func_absy_dx, func_absy_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(0,1), H2D_REFINEMENT_ANISO_H, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(1,1)));
-      //test_cases.push_back(TestCase("abs(x)*abs(y)", func_absx_absy_val, func_absx_absy_dx, func_absx_absy_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(1,1), H2D_REFINEMENT_H, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(1, 1), H2D_MAKE_QUAD_ORDER(1,1)));
-      test_cases.push_back(TestCase("x^2 y^2", func_x2y2_val, func_x2y2_dx, func_x2y2_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(2,2), H2D_REFINEMENT_P, H2D_MAKE_QUAD_ORDER(2,2)));
-      test_cases.push_back(TestCase("x^3 y", func_x3y1_val, func_x3y1_dx, func_x3y1_dy, H2D_MAKE_QUAD_ORDER(2,2), H2D_MAKE_QUAD_ORDER(3,1), H2D_REFINEMENT_P, H2D_MAKE_QUAD_ORDER(3,2)));
-      test_cases.push_back(TestCase("x^3 y^4", func_x3y4_val, func_x3y4_dx, func_x3y4_dy, H2D_MAKE_QUAD_ORDER(3,3), H2D_MAKE_QUAD_ORDER(3,4), H2D_REFINEMENT_P, H2D_MAKE_QUAD_ORDER(3,4)));
+      test_cases.push_back(TestCase("x^2", func_x2_val, func_x2_dx, func_x2_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(2,0)));
+      test_cases.push_back(TestCase("x^2 y^2", func_x2y2_val, func_x2y2_dx, func_x2y2_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(2,2)));
+      test_cases.push_back(TestCase("x^3 y", func_x3y1_val, func_x3y1_dx, func_x3y1_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(3,1)));
+      test_cases.push_back(TestCase("x^3 y^4 + y", func_x3y4y_val, func_x3y4y_dx, func_x3y4y_dy, H2D_MAKE_QUAD_ORDER(2,2), H2D_MAKE_QUAD_ORDER(3,4)));
     }
 
     return true;
@@ -171,7 +157,7 @@ int test() {
    bool failed = false;
 
   //prepare selector
-  RefinementSelectors::H1NonUniformHP selector(false, RefinementSelectors::H2DRS_CAND_HP, 1.0, H2DRS_DEFAULT_ORDER, shapeset);
+  H1ProjBasedSelector selector(H2D_HP_ANISO, 1.0, H2DRS_DEFAULT_ORDER, shapeset);
   std::list<TestCase>::iterator iter = test_cases.begin();
   while(iter != test_cases.end()){
     //set a current function and print info
@@ -198,41 +184,22 @@ int test() {
     int order = space->get_element_order(H2D_TEST_ELEM_ID);
     selector.select_refinement(e, order, &rsln, refinement);
 
-    //check selected candidate
-    if (cur_test_case->is_match(refinement)) {
-      info("  selected candidate: correct");
-
-      //check if all candidates with higher orders has zero error
-      int min_order_h = H2D_GET_H_ORDER(cur_test_case->func_quad_order);
-      int min_order_v = H2D_GET_V_ORDER(cur_test_case->func_quad_order);
-      const std::vector<RefinementSelectors::H1UniformHP::Cand>& candidates = selector.get_candidates();
-      std::vector<RefinementSelectors::H1UniformHP::Cand>::const_iterator cand = candidates.begin();
-      while (cand != candidates.end()) {
-        //check if candidate qualifies
-        int num_sons = cand->get_num_sons();
-        bool valid = true;
-        for(int i = 0; i < num_sons; i++) {
-          if (H2D_GET_H_ORDER(cand->p[i]) < min_order_h || H2D_GET_V_ORDER(cand->p[i]) < min_order_v)
-            valid = false;
-        }
-
-        //check if it fails or not
-        if (valid && cand->error > H2D_TEST_ZERO) {
-          std::stringstream str;
-          str << "  " << *cand;
-          info("%s", str.str().c_str());
-          failed = true;
-        }
-
-        //next candidate
-        cand++;
+    //check candidates
+    const std::vector<OptimumSelector::Cand>& candidates = selector.get_candidates();
+    std::vector<OptimumSelector::Cand>::const_iterator cand = candidates.begin();
+    while (cand != candidates.end()) {
+      if (cur_test_case->should_match(*cand) && abs(cand->error) > H2D_TEST_ZERO) {
+        std::stringstream str;
+        str << *cand;
+        log_msg("  ! invalid candidate: %s", str.str().c_str());
+        failed = true;
       }
-      if (!failed) {
-        info("  candidate projection: correct");
-      }
+      cand++;
     }
+    if (!failed)
+      log_msg("Success");
     else
-      failed = true;
+      log_msg("Failed!");
 
     //next test case
     iter++;
@@ -257,5 +224,13 @@ int main(int argc, char* argv[]) {
     result = test();
   }
   cleanup();
+
+  if (result == ERROR_SUCCESS)
+  {
+    log_msg("Test: Success");
+  }
+  else {
+    log_msg("Test: Failed!");
+  }
   return result;
 }

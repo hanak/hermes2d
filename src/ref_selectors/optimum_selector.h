@@ -25,9 +25,9 @@
 
 //TODO: find out why 20, 2*(H2DRS_MAX_ORDER+1)?
 #define H2DRS_INTR_GIP_ORDER 20 ///< Constant GIP order used by during projection to integrate.
-#define H2DRS_MAX_ORDER_INC 2 ///< Maximum increate of order in candidate.
+#define H2DRS_MAX_ORDER_INC H2D_ADAPT_MAX_ORDER_INC ///< Maximum increate of order in candidate.
 
-#define H2DRS_SCORE_DIFF_ZERO 1E-12 ///< A threshold of difference between scores which is considered zero.
+#define H2DRS_SCORE_DIFF_ZERO 1E-13 ///< A threshold of difference between scores which is considered zero.
 
 #define H2D_FN_VALUE  0 ///< Index of a function value.
 #define H2D_FN_DX     1 ///< Index of df/dx.

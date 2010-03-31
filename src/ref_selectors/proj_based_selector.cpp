@@ -190,7 +190,6 @@ namespace RefinementSelectors {
     Quad2D* quad = &g_quad_2d_std;
     quad->set_mode(mode);
     rsln->set_quad_2d(quad);
-    //TODO: select GIP order according to really needed order
     double3* gip_points = quad->get_points(H2DRS_INTR_GIP_ORDER);
     int num_gip_points = quad->get_num_points(H2DRS_INTR_GIP_ORDER);
 
