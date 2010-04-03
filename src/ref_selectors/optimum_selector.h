@@ -23,7 +23,7 @@
 
 #define H2D_NUM_MODES 2 ///< A number of modes.
 
-//TODO: find out why 20, 2*(H2DRS_MAX_ORDER+1)?
+//TODO: find out why 20? = 2*(H2DRS_MAX_ORDER+1)?
 #define H2DRS_INTR_GIP_ORDER 20 ///< Constant GIP order used by during projection to integrate.
 #define H2DRS_MAX_ORDER_INC H2D_ADAPT_MAX_ORDER_INC ///< Maximum increate of order in candidate.
 
@@ -32,6 +32,8 @@
 #define H2D_FN_VALUE  0 ///< Index of a function value.
 #define H2D_FN_DX     1 ///< Index of df/dx.
 #define H2D_FN_DY     2 ///< Index of df/dy.
+
+#define H2DRS_ORDER_ANY -1 ///< Any order.
 
 namespace RefinementSelectors {
 
@@ -130,11 +132,35 @@ namespace RefinementSelectors {
 
     virtual void set_current_order_range(Element* element); ///< Sets current maximum and minimum order. If the max_order is H2DRS_DEFAULT_ORDER, in the case of linear elements it uses 9 and in the case of curvilinear elements it depends on iro_cache (how curved they are).
 
-  protected: //shapefunctions
+  protected: //shape functions
+    enum ShapeType { ///< Shape type.
+      H2DST_VERTEX = 0x01, ///< Vertex function.
+      H2DST_HORIZ_EDGE = 0x02, ///< Horizontal edge function.
+      H2DST_VERT_EDGE = 0x04, ///< Verical edge function.
+      H2DST_TRI_EDGE = 0x08, ///< Triangle edge. 
+      H2DST_BUBBLE = 0x10 ///< Bubble function.
+    };
+
+    struct ShapeInx { ///< A shape index.
+      int order_h; ///< Order in H direction. Zero if the shape is just along V-direction.
+      int order_v; ///< Order in H direction. Zero if the shape is just along V-direction.
+      int inx; ///< Index of a shape.
+      ShapeType type; ///< Shape type.
+      ShapeInx(int order_h, int order_v, int inx, ShapeType type) : order_h(order_h), order_v(order_v), inx(inx), type(type) {};
+    };
+
     Shapeset *shapeset; ///< A shapeset used for projections.
 
+    std::vector<ShapeInx> shape_indices[H2D_NUM_MODES]; ///< Shape indices.
+    int max_shape_inx[H2D_NUM_MODES]; ///< Maximum of shape indices.
+    int next_order_shape[H2D_NUM_MODES][H2DRS_MAX_ORDER+1]; ///< An index of a shape index of the next order.
+    bool has_vertex_shape[H2D_NUM_MODES], has_edge_shape[H2D_NUM_MODES], has_bubble_shape[H2D_NUM_MODES]; ///< True if given type is available in the shapeset.
+
+    void build_shape_indices(const int mode, int min_edge_bubble_order); ///< Build shape indices.
+    int calc_num_shapes(int mode, int order_h, int order_v, int allowed_type_mask); ///< Calculates number of shapes of up to given order and of allowd types. If order == H2DRS_ORDER_ANY, any order is allowed.
+
   public:
-    OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset);
+    OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order); /// Contructor. Parameter 'min_edge_bubble_order' is used inrder to aviod inappropriate orders in H1 and L2 space.
     virtual ~OptimumSelector() {};
     virtual bool select_refinement(Element* element, int quad_order, Solution* rsln, ElementToRefine& refinement); ///< Selects refinement.
     virtual void update_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.

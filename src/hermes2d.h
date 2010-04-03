@@ -19,6 +19,9 @@
 #define __HERMES_2D_H
 
 #include "common.h"
+
+#include "tuple.h"
+
 #include "mesh.h"
 #include "mesh_loader.h"
 #include "h2d_reader.h"
@@ -81,10 +84,14 @@
 #include "ref_selectors/selector.h"
 #include "ref_selectors/optimum_selector.h"
 #include "ref_selectors/proj_based_selector.h"
+#include "ref_selectors/l2_proj_based_selector.h"
 #include "ref_selectors/h1_proj_based_selector.h"
+#include "ref_selectors/hcurl_proj_based_selector.h"
 
 #include "adapt.h"
+#include "l2_adapt.h"
 #include "h1_adapt.h"
+#include "hcurl_adapt.h"
 
 void hermes2d_initialize(int* argc = NULL, char* argv[] = NULL);
 void hermes2d_finalize(bool force_quit = false);

@@ -18,21 +18,21 @@
 #include "refmap.h"
 #include "integrals_h1.h"
 #include "adapt.h"
-#include "h1_adapt.h"
+#include "l2_adapt.h"
 
 using namespace std;
 
-H1Adapt::H1Adapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
+L2Adapt::L2Adapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
   for (int i = 0; i < num_comps; i++)
     for (int j = 0; j < num_comps; j++) {
       if (i == j) {
-        form[i][j] = h1_form<double, scalar>;
-        ord[i][j]  = h1_form<Ord, Ord>;
+        form[i][j] = l2_form<double, scalar>;
+        ord[i][j]  = l2_form<Ord, Ord>;
       }
     }
 }
 
-void H1Adapt::prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) {
+void L2Adapt::prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) {
   err_sln.val[gip_inx] = err_sln.val[gip_inx] - rsln.val[gip_inx];
   err_sln.dx[gip_inx] = err_sln.dx[gip_inx] - rsln.dx[gip_inx];
   err_sln.dy[gip_inx] = err_sln.dy[gip_inx] - rsln.dy[gip_inx];

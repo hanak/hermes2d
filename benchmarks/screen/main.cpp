@@ -5,6 +5,8 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
 
+using namespace RefinementSelectors;
+
 //  This example has a known exact solution. It describes an electromagnetic wave that hits
 //  a screen under the angle of 45 degrees, causing a singularity at the tip of the screen.
 //  Convergence graphs saved (both exact error and error estimate, and both wrt. dof number
@@ -41,15 +43,7 @@ const int STRATEGY = 1;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const int ADAPT_TYPE = 0;         // Type of automatic adaptivity:
-                                  // ADAPT_TYPE = 0 ... adaptive hp-FEM (default),
-                                  // ADAPT_TYPE = 1 ... adaptive h-FEM,
-                                  // ADAPT_TYPE = 2 ... adaptive p-FEM.
-const bool ISO_ONLY = false;      // Isotropic refinement flag (concerns quadrilateral elements only).
-                                  // ISO_ONLY = false ... anisotropic refinement of quad elements
-                                  // is allowed (default),
-                                  // ISO_ONLY = true ... only isotropic refinements of quad elements
-                                  // are allowed.
+const AdaptType ADAPT_TYPE = H2D_H_ANISO;         // Type of automatic adaptivity:
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -131,6 +125,9 @@ int main(int argc, char* argv[])
   // matrix solver
   UmfpackSolver solver;
 
+  // refinement selector  
+  RefinementSelectors::HcurlProjBasedSelector ref_selector(ADAPT_TYPE, 0.5, H2DRS_DEFAULT_ORDER, &shapeset);
+
   // DOF and CPU convergence graphs
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;
 
@@ -188,7 +185,7 @@ int main(int argc, char* argv[])
     ref.solve(1, &sln_fine);
 
     // calculate error estimate wrt. fine mesh solution
-    HcurlOrthoHP hp(1, &space);
+    HcurlAdapt hp(&space);
     double err_est_adapt = hp.calc_error(&sln_coarse, &sln_fine) * 100;
     double err_est_hcurl = hcurl_error(&sln_coarse, &sln_fine) * 100;
     
@@ -215,7 +212,7 @@ int main(int argc, char* argv[])
     // if err_est_adapt too large, adapt the mesh
     if (err_est_adapt < ERR_STOP) done = true;
     else {
-      hp.adapt(THRESHOLD, STRATEGY, ADAPT_TYPE, ISO_ONLY, MESH_REGULARITY);
+      hp.adapt(&ref_selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndof = assign_dofs(&space);
       if (ndof >= NDOF_STOP) done = true;
     }

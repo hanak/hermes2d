@@ -7,14 +7,10 @@
 
 namespace RefinementSelectors {
   
-  ProjBasedSelector::ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset)
-    : OptimumSelector(adapt_type, conv_exp, max_order, shapeset)
+  ProjBasedSelector::ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order)
+    : OptimumSelector(adapt_type, conv_exp, max_order, shapeset, min_edge_bubble_order)
     , rhs_cache(NULL)
   {
-    //build shape indices
-    build_shape_indices(MODE_TRIANGLE);
-    build_shape_indices(MODE_QUAD);
-
     //clear matrix cache
     for(int i = 0; i < H2DRS_MAX_ORDER+1; i++)
       for(int k = 0; k < H2DRS_MAX_ORDER+1; k++)
@@ -34,61 +30,6 @@ namespace RefinementSelectors {
         if (proj_matrices[i][k] != NULL)
           free(proj_matrices[i][k]);
 
-      }
-    }
-  }
-
-  void ProjBasedSelector::build_shape_indices(const int mode) {
-    std::vector<ShapeInx> &indices = shape_indices[mode];
-    int* next_order = this->next_order_shape[mode];
-    int& max_shape_inx = this->max_shape_inx[mode];
-    int num_edges = (mode == MODE_QUAD) ? 4 : 3;
-    shapeset->set_mode(mode);
-
-    //cleanup
-    indices.clear();
-    indices.reserve((H2DRS_MAX_ORDER+1) * (H2DRS_MAX_ORDER+1));
-
-    //TODO: what happens in a shapeset that lacks vertex-function (L2)
-    //order 1
-    next_order[0] = 0;
-    for (int i = 0; i < num_edges; i++)
-      indices.push_back(ShapeInx(1, 1, shapeset->get_vertex_index(i)));
-    next_order[1] = (int)indices.size();
-
-    //TODO: what happens in a shapeset that lacks edge-functions (HCurl)
-    //order > 1
-    max_shape_inx = 0;
-    int examined_shape = 0;
-    for (int i = 2; i <= H2DRS_MAX_ORDER; i++) {
-      //edge functions
-      if (mode == MODE_QUAD) {
-        for (int j = 0; j < num_edges; j++)
-          indices.push_back(ShapeInx(((j&1)==0) ? i : 0, ((j&1)!=0) ? i : 0, shapeset->get_edge_index(j, 0, i)));
-      }
-      else {
-        for (int j = 0; j < num_edges; j++)
-          indices.push_back(ShapeInx(i, i, shapeset->get_edge_index(j, 0, i)));
-      }
-
-      //bubble functions
-      int bubble_order = (mode == MODE_QUAD) ? H2D_MAKE_QUAD_ORDER(i, i) : i;
-      int num_bubbles = shapeset->get_num_bubbles(bubble_order);
-      int* bubble_inxs = shapeset->get_bubble_indices(bubble_order);
-      for(int j = 0; j < num_bubbles; j++) {
-        int quad_order = shapeset->get_order(bubble_inxs[j]);
-        int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
-        if (std::max(order_h, order_v) == i)
-          indices.push_back(ShapeInx(order_h, order_v, bubble_inxs[j]));
-      }
-
-      //store index of the next order
-      next_order[i] = (int)indices.size();
-
-      //update maximum
-      while(examined_shape < next_order[i]) {
-        max_shape_inx = std::max(max_shape_inx, indices[examined_shape].inx);
-        examined_shape++;
       }
     }
   }
@@ -197,22 +138,21 @@ namespace RefinementSelectors {
     rsln->enable_transform(false);
 
     // obtain reference solution values on all four refined sons
-    scalar* rval[H2D_MAX_ELEMENT_SONS][3];
+    scalar** rval[H2D_MAX_ELEMENT_SONS];
     Element* base_element = rsln->get_mesh()->get_element(e->id);
     assert(!base_element->active);
     for (int son = 0; son < H2D_MAX_ELEMENT_SONS; son++)
     {
+      //set element
       Element* e = base_element->sons[son];
       assert(e != NULL);
-      rsln->set_active_element(e);
-      rsln->set_quad_order(H2DRS_INTR_GIP_ORDER);
-      rval[son][H2D_FN_VALUE] = rsln->get_fn_values();
-      rval[son][H2D_FN_DX] = rsln->get_dx_values();
-      rval[son][H2D_FN_DY] = rsln->get_dy_values();
+
+      //obtain precalculated values
+      rval[son] = precalc_ref_solution(son, rsln, e, H2DRS_INTR_GIP_ORDER);
     }
 
     //H-candidates
-    if (max_quad_order_h != 0) {
+    if (max_quad_order_h >= 0) {
       Trf trf_identity = { {1.0, 1.0}, {0.0, 0.0} };
       Trf* p_trf_identity[1] = { &trf_identity };
       double coef_mm = 1;
@@ -225,7 +165,7 @@ namespace RefinementSelectors {
     }
 
     //ANISO-candidates
-    if (max_quad_order_aniso != 0) {
+    if (max_quad_order_aniso >= 0) {
       const double mx[4] = { 2.0, 2.0, 1.0, 1.0}; //scale coefficients of dx for X-axis due to trasformations
       const double my[4] = { 1.0, 1.0, 2.0, 2.0}; //scale coefficients of dy for Y-axis due to trasformations
       const int sons[4][2] = { {0,1}, {3,2}, {0,3}, {1,2} }; //indices of sons for sub-areas
@@ -242,7 +182,7 @@ namespace RefinementSelectors {
     }
 
     //P-candidates
-    if (max_quad_order_p != 0) {
+    if (max_quad_order_p >= 0) {
       Trf* src_trfs = NULL;
       if (mode == MODE_TRIANGLE)
         src_trfs = tri_trf;
@@ -277,7 +217,7 @@ namespace RefinementSelectors {
 
     //calculate for all orders
     double sub_area_corr_coef = 1.0 / num_sub;
-    OrderPermutator order_perm(H2D_MAKE_QUAD_ORDER(1, 1), max_quad_order, mode == MODE_TRIANGLE);
+    OrderPermutator order_perm(H2D_MAKE_QUAD_ORDER(current_min_order, current_min_order), max_quad_order, mode == MODE_TRIANGLE);
     do {
       int quad_order = order_perm.get_quad_order();
       int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
@@ -288,56 +228,59 @@ namespace RefinementSelectors {
       while (inx_shape < full_shape_indices.size()) {
         ShapeInx& shape = full_shape_indices[inx_shape];
         if (order_h >= shape.order_h && order_v >= shape.order_v) {
-          debug_assert(num_shapes < max_num_shapes, "E more shapes than predicted, possible incosistency");
+          assert_msg(num_shapes < max_num_shapes, "more shapes than predicted, possible incosistency");
           shape_inxs[num_shapes] = shape.inx;
           num_shapes++;
         }
         inx_shape++;
       }
 
-      //calculate projection matrix
-      if (proj_matrices[order_h][order_v] == NULL)
-        proj_matrices[order_h][order_v] = build_projection_matrix(*shapeset, gip_points, num_gip_points, shape_inxs, num_shapes);
-      copy_matrix(proj_matrix, proj_matrices[order_h][order_v], num_shapes, num_shapes); //copy projection matrix because original matrix will be modified
+      //continue only if there are shapes to process
+      if (num_shapes > 0) {
+        //calculate projection matrix
+        if (proj_matrices[order_h][order_v] == NULL)
+          proj_matrices[order_h][order_v] = build_projection_matrix(*shapeset, gip_points, num_gip_points, shape_inxs, num_shapes);
+        copy_matrix(proj_matrix, proj_matrices[order_h][order_v], num_shapes, num_shapes); //copy projection matrix because original matrix will be modified
 
-      //build right side (fill cache values that are missing)
-      for(int inx_sub = 0; inx_sub < num_sub; inx_sub++) {
-        Element* sub_elem = sub_elems[inx_sub];
-        ElemSubTrf sub_trf = { sub_trfs[inx_sub], coefs_mx[inx_sub], coefs_my[inx_sub] };
-        ElemGIP sub_gip = { gip_points, num_gip_points, sub_rvals[inx_sub] };
+        //build right side (fill cache values that are missing)
+        for(int inx_sub = 0; inx_sub < num_sub; inx_sub++) {
+          Element* sub_elem = sub_elems[inx_sub];
+          ElemSubTrf sub_trf = { sub_trfs[inx_sub], coefs_mx[inx_sub], coefs_my[inx_sub] };
+          ElemGIP sub_gip = { gip_points, num_gip_points, sub_rvals[inx_sub] };
 
-        for(int k = 0; k < num_shapes; k++) {
-          int shape_inx = shape_inxs[k];
-          ValueCacheItem<scalar>& shape_rhs_cache = rhs_cache[shape_inx];
-          if (!shape_rhs_cache.is_valid())
-            shape_rhs_cache.set(shape_rhs_cache.get() + evaluate_rsh_sub_element(sub_elem, sub_gip, sub_trf, shape_inx));
+          for(int k = 0; k < num_shapes; k++) {
+            int shape_inx = shape_inxs[k];
+            ValueCacheItem<scalar>& shape_rhs_cache = rhs_cache[shape_inx];
+            if (!shape_rhs_cache.is_valid())
+              shape_rhs_cache.set(shape_rhs_cache.get() + evaluate_rsh_sub_element(sub_elem, sub_gip, sub_trf, shape_inx));
+          }
         }
+
+        //copy values from cache and apply area correction coefficient
+        for(int k = 0; k < num_shapes; k++) {
+          ValueCacheItem<scalar>& shape_rhs_cache = rhs_cache[shape_inxs[k]];
+          right_side[k] = sub_area_corr_coef * shape_rhs_cache.get();
+          shape_rhs_cache.mark();
+        }
+
+        //solve
+        ludcmp(proj_matrix, num_shapes, indx, d);
+        lubksb<scalar>(proj_matrix, num_shapes, indx, right_side);
+
+        //calculate error
+        double error = 0;
+        for(int inx_sub = 0; inx_sub < num_sub; inx_sub++) {
+          Element* sub_elem = sub_elems[inx_sub];
+          Trf* ref_coord_transf = sub_trfs[inx_sub];
+          double coef_mx = coefs_mx[inx_sub], coef_my = coefs_my[inx_sub];
+          ElemSubTrf sub_trf = { sub_trfs[inx_sub], coefs_mx[inx_sub], coefs_my[inx_sub] };
+          ElemGIP sub_gip = { gip_points, num_gip_points, sub_rvals[inx_sub] };
+          ElemProj elem_proj = { shape_inxs, num_shapes, right_side, quad_order };
+
+          error += evaluate_error_sub_element(sub_elem, sub_gip, sub_trf, elem_proj);
+        }
+        errors[order_h][order_v] = error * sub_area_corr_coef; //apply area correction coefficient
       }
-
-      //copy values from cache and apply area correction coefficient
-      for(int k = 0; k < num_shapes; k++) {
-        ValueCacheItem<scalar>& shape_rhs_cache = rhs_cache[shape_inxs[k]];
-        right_side[k] = sub_area_corr_coef * shape_rhs_cache.get();
-        shape_rhs_cache.mark();
-      }
-
-      //solve
-      ludcmp(proj_matrix, num_shapes, indx, d);
-      lubksb<scalar>(proj_matrix, num_shapes, indx, right_side);
-
-      //calculate error
-      double error = 0;
-      for(int inx_sub = 0; inx_sub < num_sub; inx_sub++) {
-        Element* sub_elem = sub_elems[inx_sub];
-        Trf* ref_coord_transf = sub_trfs[inx_sub];
-        double coef_mx = coefs_mx[inx_sub], coef_my = coefs_my[inx_sub];
-        ElemSubTrf sub_trf = { sub_trfs[inx_sub], coefs_mx[inx_sub], coefs_my[inx_sub] };
-        ElemGIP sub_gip = { gip_points, num_gip_points, sub_rvals[inx_sub] };
-        ElemProj elem_proj = { shape_inxs, num_shapes, right_side, quad_order };
-
-        error += evaluate_error_sub_element(sub_elem, sub_gip, sub_trf, elem_proj);
-      }
-      errors[order_h][order_v] = error * sub_area_corr_coef; //apply area correction coefficient
     } while (order_perm.next());
 
     //clenaup

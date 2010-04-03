@@ -9,7 +9,21 @@ namespace RefinementSelectors {
   H1Shapeset H1ProjBasedSelector::default_shapeset;
 
   H1ProjBasedSelector::H1ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, H1Shapeset* user_shapeset)
-    : ProjBasedSelector(adapt_type, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset) {}
+    : ProjBasedSelector(adapt_type, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, 2) {}
+
+  scalar** H1ProjBasedSelector::precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order) {
+    //set element and integration order
+    rsln->set_active_element(element);
+    rsln->set_quad_order(intr_gip_order);
+
+    //fill with values
+    scalar** rvals_son = precalc_rvals[inx_son];
+    rvals_son[H2D_FN_VALUE] = rsln->get_fn_values(0);
+    rvals_son[H2D_FN_DX] = rsln->get_dx_values(0);
+    rvals_son[H2D_FN_DY] = rsln->get_dy_values(0);
+
+    return rvals_son;
+  }
 
   double** H1ProjBasedSelector::build_projection_matrix(Shapeset& shapeset,
     double3* gip_points, int num_gip_points,

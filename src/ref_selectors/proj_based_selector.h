@@ -16,6 +16,7 @@
 #ifndef __H2D_REFINEMENT_PROJ_BASED_SELECTOR_H
 #define __H2D_REFINEMENT_PROJ_BASED_SELECTOR_H
 
+#include "../tuple.h"
 #include "optimum_selector.h"
 
 namespace RefinementSelectors {
@@ -23,8 +24,9 @@ namespace RefinementSelectors {
 
   class H2D_API ProjBasedSelector : public OptimumSelector {
   public: //API
-    ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset);
     virtual ~ProjBasedSelector();
+  protected:
+    ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order);
 
   protected: //error evaluation
     template<typename T>
@@ -47,9 +49,9 @@ namespace RefinementSelectors {
     /// \brief Calculate various projection errors for sons of a candidates of given combination of orders. Errors are not normalized. Overloadable.
     /// \param[in] e Element which is being processed.
     /// \param[in] rsln Reference solution.
-    /// \param[out] herr Errors of sons of H-candidate.
-    /// \param[out] anisoerr Errors of sons of ANISO-candidates.
-    /// \param[out] perr Errros of sons of P-candidates.
+    /// \param[out] herr Errors of sons of H-candidate. < 0 if there are no H-candidates.
+    /// \param[out] anisoerr Errors of sons of ANISO-candidates. < 0 if there are no ANISO-candidates.
+    /// \param[out] perr Errros of sons of P-candidates. < 0 if there are no P-candidates.
     virtual void calc_projection_errors(Element* e, const int max_quad_order_h, const int max_quad_order_p, const int max_quad_order_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr);
     void calc_proj_error_cand_son(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_elems, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, int max_quad_order, SonProjectionError errors); ///< Calculate projection errors.
 
@@ -70,25 +72,11 @@ namespace RefinementSelectors {
       double coef_mx, coef_my; ///< Differentials correction coefficients.
     };
 
+    virtual scalar** precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order) = 0; ///< Returns array of arrays of precalculate values of a son. First index is index of a value, second index is index of GIP. Before entering, neither son is made active nor order of GIP is set even though both are provied.
     virtual double** build_projection_matrix(Shapeset& shapeset, double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes) = 0; ///< Builds a projection matrix.
     virtual scalar evaluate_rsh_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) = 0; ///> Evaluate a single value of the right side for a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
     virtual double evaluate_error_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) = 0; ///> Evaluate an error of a projection on a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
-
-  protected: //shape functions
-    struct ShapeInx { ///< A shape index.
-      int order_h; ///< Order in H direction. Zero if the shape is just along V-direction.
-      int order_v; ///< Order in H direction. Zero if the shape is just along V-direction.
-      int inx; ///< Index of a shape.
-      ShapeInx(int order_h, int order_v, int inx) : order_h(order_h), order_v(order_v), inx(inx) {};
-    };
-
-    std::vector<ShapeInx> shape_indices[H2D_NUM_MODES]; ///< Shape indices.
-    int max_shape_inx[H2D_NUM_MODES]; ///< Maximum of shape indices.
-    int next_order_shape[H2D_NUM_MODES][H2DRS_MAX_ORDER+1]; ///< An index of a shape index of the next order.
-
-    void build_shape_indices(const int mode); ///< Build shape indices.
   };
-
 }
 
 #endif

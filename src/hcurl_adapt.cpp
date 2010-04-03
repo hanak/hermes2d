@@ -16,24 +16,28 @@
 #include "common.h"
 #include "forms.h"
 #include "refmap.h"
-#include "integrals_h1.h"
+#include "integrals_hcurl.h"
 #include "adapt.h"
-#include "h1_adapt.h"
+#include "hcurl_adapt.h"
 
 using namespace std;
 
-H1Adapt::H1Adapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
+#ifdef COMPLEX
+
+HcurlAdapt::HcurlAdapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
   for (int i = 0; i < num_comps; i++)
     for (int j = 0; j < num_comps; j++) {
       if (i == j) {
-        form[i][j] = h1_form<double, scalar>;
-        ord[i][j]  = h1_form<Ord, Ord>;
+        form[i][j] = hcurl_form<double, scalar>;
+        ord[i][j]  = hcurl_form<Ord, Ord>;
       }
     }
 }
 
-void H1Adapt::prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) {
-  err_sln.val[gip_inx] = err_sln.val[gip_inx] - rsln.val[gip_inx];
-  err_sln.dx[gip_inx] = err_sln.dx[gip_inx] - rsln.dx[gip_inx];
-  err_sln.dy[gip_inx] = err_sln.dy[gip_inx] - rsln.dy[gip_inx];
+void HcurlAdapt::prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) {
+  err_sln.val0[gip_inx] = err_sln.val0[gip_inx] - rsln.val0[gip_inx];
+  err_sln.val1[gip_inx] = err_sln.val1[gip_inx] - rsln.val1[gip_inx];
+  err_sln.curl[gip_inx] = err_sln.curl[gip_inx] - rsln.curl[gip_inx];
 }
+
+#endif

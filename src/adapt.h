@@ -16,6 +16,7 @@
 #ifndef __HERMES2D_ADAPT_H
 #define __HERMES2D_ADAPT_H
 
+#include "tuple.h"
 #include "forms.h"
 #include "weakform.h"
 #include "integrals_h1.h"
@@ -23,27 +24,6 @@
 
 #define H2D_MAX_COMPONENTS 10 ///< A maximum number of equations. Equals to a mesh-space pairs.
 
-/// A vector of values. Used to pass a variable number of parameters type-safe and a little bit comfortably.
-template<typename T>
-class Tuple: public std::vector<T> {
-public:
-  Tuple(const int num, T* first) { 
-    error_if(num <= 0, "invalid length %d", num);
-    reserve(num);
-    for(int i = 0; i < num; i++)
-      push_back(first[i]);
-  };
-  Tuple(T a) { push_back(a); };
-  Tuple(T a, T b) { push_back(a); push_back(b); };
-  Tuple(T a, T b, T c) { push_back(a); push_back(b); push_back(c); };
-  Tuple(T a, T b, T c, T d) { push_back(a); push_back(b); push_back(c); push_back(d); };
-  Tuple(T a, T b, T c, T d, T e) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); };
-  Tuple(T a, T b, T c, T d, T e, T f) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g, T h) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g, T h, T i) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g, T h, T i, T j) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); push_back(j); };
-};
 HERMES2D_API_USED_TEMPLATE(Tuple<Space*>);
 HERMES2D_API_USED_TEMPLATE(Tuple<Solution*>);
 
@@ -118,13 +98,15 @@ protected: //forms and error evaluation
   biform_val_t form[H2D_MAX_COMPONENTS][H2D_MAX_COMPONENTS]; ///< Bilinear forms to calculate error
   biform_ord_t ord[H2D_MAX_COMPONENTS][H2D_MAX_COMPONENTS]; ///< Bilinear forms to calculate error
 
-  // evaluation of error and norm forms
   scalar eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
                     MeshFunction *sln1, MeshFunction *sln2, MeshFunction *rsln1, MeshFunction *rsln2,
-                    RefMap *rv1,        RefMap *rv2,        RefMap *rrv1,        RefMap *rrv2);
+                    RefMap *rv1,        RefMap *rv2,        RefMap *rrv1,        RefMap *rrv2); ///< Evaluate error.
 
   scalar eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
-                   MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2);
+                   MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2); ///< Evalute norm.
+
+  virtual void prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) = 0; ///< Prepare a value for evaluation of error. The results should be stored to err_sln.
+
 
   virtual void fill_regular_queue(Mesh** meshes, Mesh** ref_meshes); ///< Builds a queue of elements to be examined, i.e., inits Adapt::standard_queue. This sorted by error descending. Assumes that Adapt::errors is initialized.
 private: 

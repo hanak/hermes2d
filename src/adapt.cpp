@@ -481,14 +481,9 @@ scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
   Func<scalar>* v1 = init_fn(rsln1, rrv1, order);
   Func<scalar>* v2 = init_fn(rsln2, rrv2, order);
 
-  for (int i = 0; i < np; i++)
-  {
-    err1->val[i] = err1->val[i] - v1->val[i];
-    err1->dx[i] = err1->dx[i] - v1->dx[i];
-    err1->dy[i] = err1->dy[i] - v1->dy[i];
-    err2->val[i] = err2->val[i] - v2->val[i];
-    err2->dx[i] = err2->dx[i] - v2->dx[i];
-    err2->dy[i] = err2->dy[i] - v2->dy[i];
+  for (int i = 0; i < np; i++) {
+    prepare_eval_error_value(i, *err1, *v1);
+    prepare_eval_error_value(i, *err2, *v2);
   }
 
   scalar res = bi_fn(np, jwt, err1, err2, e, NULL);
