@@ -34,6 +34,7 @@
 #include <float.h>
 
 // STL stuff
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <map>

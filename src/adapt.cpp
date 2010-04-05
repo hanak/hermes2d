@@ -14,6 +14,7 @@
 // along with Hermes2D.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "common.h"
+#include "limit_order.h"
 #include "solution.h"
 #include "linsystem.h"
 #include "refmap.h"
@@ -633,7 +634,8 @@ void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
   //prepare space for queue (it is assumed that it will only grow since we can just split)
   regular_queue.clear();
   if (num_act_elems < (int)regular_queue.capacity()) {
-    regular_queue.swap(vector<ElementReference>()); //deallocate
+    vector<ElementReference> empty_refs;
+    regular_queue.swap(empty_refs); //deallocate
     regular_queue.reserve(num_act_elems); //allocate
   }
 

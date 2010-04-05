@@ -22,22 +22,24 @@
 template<typename T>
 class Tuple: public std::vector<T> {
 public:
-  Tuple(const int num, T* first) { 
-    error_if(num <= 0, "invalid length %d", num);
-    reserve(num);
-    for(int i = 0; i < num; i++)
-      push_back(first[i]);
+  template<typename ForwardIterator>
+  Tuple(ForwardIterator first, ForwardIterator last) {
+    reserve(last - first);
+    while(first != last) {
+      push_back(*first);
+    }
   };
-  Tuple(T a) { push_back(a); };
-  Tuple(T a, T b) { push_back(a); push_back(b); };
-  Tuple(T a, T b, T c) { push_back(a); push_back(b); push_back(c); };
-  Tuple(T a, T b, T c, T d) { push_back(a); push_back(b); push_back(c); push_back(d); };
-  Tuple(T a, T b, T c, T d, T e) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); };
-  Tuple(T a, T b, T c, T d, T e, T f) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g, T h) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g, T h, T i) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); };
-  Tuple(T a, T b, T c, T d, T e, T f, T g, T h, T i, T j) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); push_back(j); };
+
+  Tuple(const T& a) { push_back(a); };
+  Tuple(const T& a, const T& b) { push_back(a); push_back(b); };
+  Tuple(const T& a, const T& b, const T& c) { push_back(a); push_back(b); push_back(c); };
+  Tuple(const T& a, const T& b, const T& c, const T& d) { push_back(a); push_back(b); push_back(c); push_back(d); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h, const T& i) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h, const T& i, const T& j) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); push_back(j); };
 };
 
 #endif

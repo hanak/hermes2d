@@ -21,6 +21,7 @@
 #include "common.h"
 
 #include "tuple.h"
+#include "limit_order.h"
 
 #include "mesh.h"
 #include "mesh_loader.h"

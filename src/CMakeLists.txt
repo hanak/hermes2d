@@ -1,6 +1,7 @@
 set(SRC
        hash.cpp mesh.cpp regul.cpp refmap.cpp curved.cpp
        transform.cpp traverse.cpp
+       limit_order.cpp
        shapeset.cpp precalc.cpp solution.cpp filter.cpp
        space.cpp space_h1.cpp space_hcurl.cpp space_l2.cpp
        space_hdiv.cpp
