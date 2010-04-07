@@ -49,6 +49,8 @@ namespace RefinementSelectors {
     H2D_HP_ANISO
   };
 
+  extern H2D_API bool is_hp(const AdaptType adapt_type); ///< Returns true if adapt type is HP.
+
   class H2D_API OptimumSelector : public Selector { ///< Selector that chooses an optimal candidates based on error decrease per a new DOF.
   public: //candidates
     struct Cand { ///< A candidate.

@@ -5,6 +5,8 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
 
+using namespace RefinementSelectors;
+
 //  This example solves a linear advection diffusion problem using optional
 //  variational multiscale stabilization. To use the stabilization, you must
 //  uncomment the definition of H2D_SECOND_DERIVATIVES_ENABLED in common.h
@@ -34,13 +36,7 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const RefinementSelectors::AllowedCandidates ADAPT_TYPE =
-RefinementSelectors::H2DRS_CAND_HP;         // Type of automatic adaptivity.
-const bool ISO_ONLY = false;      // Isotropic refinement flag (concerns quadrilateral elements only).
-                                  // ISO_ONLY = false ... anisotropic refinement of quad elements
-                                  // is allowed (default),
-                                  // ISO_ONLY = true ... only isotropic refinements of quad elements
-                                  // are allowed.
+const AdaptType ADAPT_TYPE = H2D_HP_ANISO;         // Type of automatic adaptivity.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -168,7 +164,7 @@ int main(int argc, char* argv[])
   SimpleGraph graph_dof_est, graph_cpu_est;
 
   // prepare selector
-  RefinementSelectors::H1NonUniformHP selector(ISO_ONLY, ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
+  H1ProjBasedSelector selector(ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // time measurement
   TimePeriod cpu_time;
@@ -211,7 +207,7 @@ int main(int argc, char* argv[])
     cpu_time.tick(H2D_SKIP);
 
     // calculate error estimate wrt. fine mesh solution
-    H1AdaptHP hp(1, &space);
+    H1Adapt hp(&space);
     double err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
 
     // time measurement
@@ -235,7 +231,7 @@ int main(int argc, char* argv[])
     // if err_est too large, adapt the mesh
     if (err_est < ERR_STOP) done = true;
     else {
-      hp.adapt(THRESHOLD, STRATEGY, &selector, MESH_REGULARITY);
+      hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndof = assign_dofs(&space);
       if (ndof >= NDOF_STOP) done = true;
     }

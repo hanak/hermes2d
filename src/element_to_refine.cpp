@@ -10,7 +10,7 @@ ElementToRefine& ElementToRefine::operator=(const ElementToRefine& orig) {
   return *this;
 }
 
-std::ostream& operator<<(std::ostream& stream, const ElementToRefine& elem_ref) {
+HERMES2D_API std::ostream& operator<<(std::ostream& stream, const ElementToRefine& elem_ref) {
   stream << "id:" << elem_ref.id << ";comp:" << elem_ref.comp << "; split:" << get_refin_str(elem_ref.split) << "; orders:[";
   int num_sons = elem_ref.get_num_sons();
   for(int i = 0; i < num_sons; i++) {

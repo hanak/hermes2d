@@ -9,7 +9,7 @@
 
 namespace RefinementSelectors {
 
-  std::ostream &operator<<(std::ostream &stream, const OptimumSelector::Cand& cand) {
+  HERMES2D_API std::ostream &operator<<(std::ostream &stream, const OptimumSelector::Cand& cand) {
     stream.precision(2);
     stream << "split:" << get_refin_str(cand.split);
     stream << " err:" << std::scientific << cand.error << " dofs:" << cand.dofs << " ";
@@ -23,6 +23,20 @@ namespace RefinementSelectors {
     }
     stream << "]";
     return stream;
+  }
+
+  HERMES2D_API bool is_hp(const AdaptType adapt_type) {
+    switch(adapt_type) {
+      case H2D_P_ISO:
+      case H2D_P_ANISO:
+      case H2D_H_ISO:
+      case H2D_H_ANISO: return false; break;
+      case H2D_HP_ISO:
+      case H2D_HP_ANISO_H:
+      case H2D_HP_ANISO_P:
+      case H2D_HP_ANISO: return true; break;
+      default: error("invalid adapt type %d", adapt_type); return false;
+    }
   }
 
   OptimumSelector::OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order)
