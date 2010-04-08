@@ -43,7 +43,7 @@ const int STRATEGY = 1;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const AdaptType ADAPT_TYPE = H2D_H_ANISO;         // Type of automatic adaptivity:
+const AdaptType ADAPT_TYPE = H2D_HP_ANISO;         // Type of automatic adaptivity:
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,

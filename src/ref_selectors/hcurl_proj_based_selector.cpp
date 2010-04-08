@@ -16,7 +16,16 @@ namespace RefinementSelectors {
   HcurlShapeset HcurlProjBasedSelector::default_shapeset;
 
   HcurlProjBasedSelector::HcurlProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, HcurlShapeset* user_shapeset)
-    : ProjBasedSelector(adapt_type, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, 0) {}
+    : ProjBasedSelector(adapt_type, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(), Range<int>(0, H2DRS_MAX_HCURL_ORDER)) {}
+
+  void HcurlProjBasedSelector::set_current_order_range(Element* element) {
+    current_max_order = this->max_order;
+    if (current_max_order == H2DRS_DEFAULT_ORDER)
+      current_max_order = std::min(H2DRS_MAX_HCURL_ORDER, (20 - element->iro_cache)/2 - 1); // default
+    else
+      current_max_order = std::min(max_order, (20 - element->iro_cache)/2 - 1); // user specified
+    current_min_order = 0;
+  }
 
   scalar** HcurlProjBasedSelector::precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order) {
     //set element and integration order

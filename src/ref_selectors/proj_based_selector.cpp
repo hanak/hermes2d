@@ -7,8 +7,8 @@
 
 namespace RefinementSelectors {
   
-  ProjBasedSelector::ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order)
-    : OptimumSelector(adapt_type, conv_exp, max_order, shapeset, min_edge_bubble_order)
+  ProjBasedSelector::ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
+    : OptimumSelector(adapt_type, conv_exp, max_order, shapeset, vertex_order, edge_bubble_order)
     , rhs_cache(NULL)
   {
     //clear matrix cache
@@ -204,7 +204,7 @@ namespace RefinementSelectors {
     , SonProjectionError errors
     ) {
     //allocate space
-    int max_num_shapes = next_order_shape[mode][current_max_order] - next_order_shape[mode][0];
+    int max_num_shapes = next_order_shape[mode][current_max_order];
     scalar* right_side = new scalar[max_num_shapes];
     int* shape_inxs = new int[max_num_shapes];
     int* indx = new int[max_num_shapes]; //solver data

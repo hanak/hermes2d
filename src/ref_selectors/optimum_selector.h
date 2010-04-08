@@ -23,9 +23,9 @@
 
 #define H2D_NUM_MODES 2 ///< A number of modes.
 
-//TODO: find out why 20? = 2*(H2DRS_MAX_ORDER+1)?
+//TODO: find out why 20 used used, should'n be there 2*(H2DRS_MAX_ORDER+1)
 #define H2DRS_INTR_GIP_ORDER 20 ///< Constant GIP order used by during projection to integrate.
-#define H2DRS_MAX_ORDER_INC H2D_ADAPT_MAX_ORDER_INC ///< Maximum increate of order in candidate.
+#define H2DRS_MAX_ORDER_INC 2 ///< Maximum increase of order in candidates.
 
 #define H2DRS_SCORE_DIFF_ZERO 1E-13 ///< A threshold of difference between scores which is considered zero.
 
@@ -50,6 +50,30 @@ namespace RefinementSelectors {
   };
 
   extern H2D_API bool is_hp(const AdaptType adapt_type); ///< Returns true if adapt type is HP.
+
+  template<typename T>
+  class Range { ///< Range of values.
+    T lower_bound; ///< Lower boundary.
+    T upper_bound; ///< Upper boundary.
+    bool empty_range; ///< True if range is empty.
+  public:
+    Range() : empty_range(true) {};
+    Range(const T& lower_bound, const T& upper_bound) : empty_range(lower_bound > upper_bound), lower_bound(lower_bound), upper_bound(upper_bound) {};
+    bool empty() const { return empty_range; }; ///< Returns true if range is empty.
+    const T& lower() const { return lower_bound; }; ///< Returns lower bound.
+    const T& upper() const { return upper_bound; }; ///< Returns upper bound.
+    bool is_in_closed(const T& value) const { return (value >= lower_bound && value <= upper_bound); }; ///< Returns true if value is inside the closed range.
+    bool is_in_open(const T& value) const { return (value > lower_bound && value < upper_bound); }; ///< Returns true if value is inside the open range.
+
+    static Range<T> make_envelope(const Range<T>& a, const Range<T>& b) { ///< Create an envelope which contains both ranges.
+      if (a.empty())
+        return b;
+      else if (b.empty())
+        return a;
+      else
+        return Range(std::min(a.lower(), b.lower()), std::max(a.upper(), b.upper()));
+    };
+  };
 
   class H2D_API OptimumSelector : public Selector { ///< Selector that chooses an optimal candidates based on error decrease per a new DOF.
   public: //candidates
@@ -132,7 +156,7 @@ namespace RefinementSelectors {
     int current_max_order; ///< Current maximum order.
     int current_min_order; ///< Current minimum order.
 
-    virtual void set_current_order_range(Element* element); ///< Sets current maximum and minimum order. If the max_order is H2DRS_DEFAULT_ORDER, in the case of linear elements it uses 9 and in the case of curvilinear elements it depends on iro_cache (how curved they are).
+    virtual void set_current_order_range(Element* element) = 0; ///< Sets current maximum and minimum order.
 
   protected: //shape functions
     enum ShapeType { ///< Shape type.
@@ -158,11 +182,11 @@ namespace RefinementSelectors {
     int next_order_shape[H2D_NUM_MODES][H2DRS_MAX_ORDER+1]; ///< An index of a shape index of the next order.
     bool has_vertex_shape[H2D_NUM_MODES], has_edge_shape[H2D_NUM_MODES], has_bubble_shape[H2D_NUM_MODES]; ///< True if given type is available in the shapeset.
 
-    void build_shape_indices(const int mode, int min_edge_bubble_order); ///< Build shape indices.
+    void build_shape_indices(const int mode, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); ///< Build shape indices.
     int calc_num_shapes(int mode, int order_h, int order_v, int allowed_type_mask); ///< Calculates number of shapes of up to given order and of allowd types. If order == H2DRS_ORDER_ANY, any order is allowed.
 
   public:
-    OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order); /// Contructor. Parameter 'min_edge_bubble_order' is used inrder to aviod inappropriate orders in H1 and L2 space.
+    OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); /// Contructor. Parameters 'vertex_order' and 'edge_bubble_order' are due to the fact that shapesets return valid index even though given shape is invalid.
     virtual ~OptimumSelector() {};
     virtual bool select_refinement(Element* element, int quad_order, Solution* rsln, ElementToRefine& refinement); ///< Selects refinement.
     virtual void update_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.

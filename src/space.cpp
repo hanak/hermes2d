@@ -229,6 +229,7 @@ void Space::set_mesh(Mesh* mesh)
 
 void Space::propagate_zero_orders(Element* e)
 {
+  warn_if(get_element_order(e->id) != 0, "zeroing order of an element ID:%d, original order (H:%d; V:%d)", e->id, get_h_order(get_element_order(e->id)), get_v_order(get_element_order(e->id)));
   set_element_order(e->id, 0);
   if (!e->active)
     for (int i = 0; i < 4; i++)
@@ -268,9 +269,11 @@ int Space::assign_dofs(int first_dof, int stride)
   resize_tables();
 
   Element* e;
-  for_all_base_elements(e, mesh)
-    if (get_element_order(e->id) == 0)
-      propagate_zero_orders(e);
+  //DEBUG-BEGIN: commented out
+  //for_all_base_elements(e, mesh)
+  //  if (get_element_order(e->id) == 0)
+  //    propagate_zero_orders(e);
+  //DEBUG-END
 
   for_all_active_elements(e, mesh)
     if (e->id >= esize || edata[e->id].order < 0)

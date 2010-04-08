@@ -75,17 +75,17 @@ namespace RefinementSelectors {
       *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
   }
 
-  OptimumSelector::OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order)
+  OptimumSelector::OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
     : Selector(max_order), adapt_type(adapt_type)
     , conv_exp(conv_exp), shapeset(shapeset) {
     error_if(shapeset == NULL, "Shapeset is NULL.");
 
     //build shape indices
-    build_shape_indices(MODE_TRIANGLE, min_edge_bubble_order);
-    build_shape_indices(MODE_QUAD, min_edge_bubble_order);
+    build_shape_indices(MODE_TRIANGLE, vertex_order, edge_bubble_order);
+    build_shape_indices(MODE_QUAD, vertex_order, edge_bubble_order);
   }
 
-  void OptimumSelector::build_shape_indices(const int mode, int min_edge_bubble_order) {
+  void OptimumSelector::build_shape_indices(const int mode, const Range<int>& vertex_order, const Range<int>& edge_bubble_order) {
     std::vector<ShapeInx> &indices = shape_indices[mode];
     int* next_order = this->next_order_shape[mode];
     int& max_shape_inx = this->max_shape_inx[mode];
@@ -100,64 +100,83 @@ namespace RefinementSelectors {
     indices.reserve((H2DRS_MAX_ORDER+1) * (H2DRS_MAX_ORDER+1));
     has_vertex = has_edge = has_bubble = false;
 
-    //vertex functions
-    next_order[0] = 0;
-    for (int i = 0; i < num_edges; i++) {
-      int inx = shapeset->get_vertex_index(i);
-      if (inx >= 0) {
-        indices.push_back(ShapeInx(1, 1, inx, H2DST_VERTEX));
-        has_vertex = true;
-      }
-    }
-    next_order[1] = (int)indices.size();
+    //get total range of orders
+    Range<int> order_range = Range<int>::make_envelope(vertex_order, edge_bubble_order);
 
-    //edge functions and bubble functions
+    //for all orders
     max_shape_inx = 0;
     int examined_shape = 0;
-    for (int i = min_edge_bubble_order; i <= H2DRS_MAX_ORDER; i++) {
-      //edge functions
-      if (mode == MODE_QUAD) {
-        for (int j = 0; j < num_edges; j++) {
-          int inx = shapeset->get_edge_index(j, 0, i);
+    for(int i = order_range.lower(); i <= order_range.upper(); i++) {
+      //vertex functions
+      if (vertex_order.is_in_closed(i)) {
+        for (int i = 0; i < num_edges; i++) {
+          int inx = shapeset->get_vertex_index(i);
           if (inx >= 0) {
-            if ((j&1) == 0) //horizontal edge 
-              indices.push_back(ShapeInx(i, 0, inx, H2DST_HORIZ_EDGE));
-            else //vertical edge
-              indices.push_back(ShapeInx(0, i, inx, H2DST_VERT_EDGE));
-            has_edge = true;
-          }
-        }
-      }
-      else {
-        for (int j = 0; j < num_edges; j++) {
-          int inx = shapeset->get_edge_index(j, 0, i);
-          if (inx >= 0) {
-            indices.push_back(ShapeInx(i, i, inx, H2DST_TRI_EDGE));
-            has_edge = true;
+            indices.push_back(ShapeInx(1, 1, inx, H2DST_VERTEX));
+            has_vertex = true;
           }
         }
       }
 
-      //bubble functions
-      int bubble_order = (mode == MODE_QUAD) ? H2D_MAKE_QUAD_ORDER(i, i) : i;
-      int num_bubbles = shapeset->get_num_bubbles(bubble_order);
-      int* bubble_inxs = shapeset->get_bubble_indices(bubble_order);
-      for(int j = 0; j < num_bubbles; j++) {
-        int quad_order = shapeset->get_order(bubble_inxs[j]);
-        int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
-        if (std::max(order_h, order_v) == i) {
-          indices.push_back(ShapeInx(order_h, order_v, bubble_inxs[j], H2DST_BUBBLE));
-          has_bubble = true;
+      //edge functions and bubble functions
+      if (edge_bubble_order.is_in_closed(i)) {
+        //edge functions
+        if (mode == MODE_QUAD) {
+          for (int j = 0; j < num_edges; j++) {
+            int inx = shapeset->get_edge_index(j, 0, i);
+            if (inx >= 0) {
+              if ((j&1) == 0) //horizontal edge
+                indices.push_back(ShapeInx(i, 0, inx, H2DST_HORIZ_EDGE));
+              else //vertical edge
+                indices.push_back(ShapeInx(0, i, inx, H2DST_VERT_EDGE));
+              has_edge = true;
+            }
+          }
         }
-      }
+        else {
+          for (int j = 0; j < num_edges; j++) {
+            int inx = shapeset->get_edge_index(j, 0, i);
+            if (inx >= 0) {
+              indices.push_back(ShapeInx(i, i, inx, H2DST_TRI_EDGE));
+              has_edge = true;
+            }
+          }
+        }
 
-      //store index of the next order
-      next_order[i] = (int)indices.size();
+        //bubble functions
+        int bubble_order = (mode == MODE_QUAD) ? H2D_MAKE_QUAD_ORDER(i, i) : i;
+        int num_bubbles = shapeset->get_num_bubbles(bubble_order);
+        int* bubble_inxs = shapeset->get_bubble_indices(bubble_order);
+        for(int j = 0; j < num_bubbles; j++) {
+          //retrieve order of a bubble function
+          int quad_order = shapeset->get_order(bubble_inxs[j]);
+          int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
+          warn_if(std::max(order_h, order_v) > i, "requested bubble functions of up to order %d but retrieved bubble function %d has order (H:%d; V:%d), mode %d", i, bubble_inxs[j], order_h, order_v, mode);
 
-      //update maximum
-      while(examined_shape < next_order[i]) {
-        max_shape_inx = std::max(max_shape_inx, indices[examined_shape].inx);
-        examined_shape++;
+          //HACK: check whether the bubble function is not already used (Hcurl does that)
+          int inx_bubble = bubble_inxs[j];
+          std::vector<ShapeInx>::const_iterator inx = indices.begin();
+          while (inx != indices.end() && inx->inx != inx_bubble)
+            inx++;
+          if (inx == indices.end()) { //bubble is unique: add it
+            //HACK: Hcurl returns bubble function 2/0 when bubble functions of up to order 1/1 are requested
+            order_h = std::min(order_h, i);
+            order_v = std::min(order_v, i);
+
+            //add bubble function
+            indices.push_back(ShapeInx(order_h, order_v, bubble_inxs[j], H2DST_BUBBLE));
+            has_bubble = true;
+          }
+        }
+
+        //store index of the next order
+        next_order[i] = (int)indices.size();
+
+        //update maximum
+        while(examined_shape < next_order[i]) {
+          max_shape_inx = std::max(max_shape_inx, indices[examined_shape].inx);
+          examined_shape++;
+        }
       }
     }
   }
@@ -188,15 +207,6 @@ namespace RefinementSelectors {
     }
     else
       return 0;
-  }
-
-  void OptimumSelector::set_current_order_range(Element* element) {
-    current_max_order = this->max_order;
-    if (current_max_order == H2DRS_DEFAULT_ORDER)
-      current_max_order = (20 - element->iro_cache)/2 - 1; // default
-    else
-      current_max_order = std::min(current_max_order, (20 - element->iro_cache)/2 - 1); // user specified
-    current_min_order = 0;
   }
 
   void OptimumSelector::append_candidates_split(const int start_quad_order, const int last_quad_order, const int split, bool iso_p) {

@@ -26,7 +26,7 @@ namespace RefinementSelectors {
   public: //API
     virtual ~ProjBasedSelector();
   protected:
-    ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, int min_edge_bubble_order);
+    ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order);
 
   protected: //error evaluation
     template<typename T>

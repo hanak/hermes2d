@@ -26,6 +26,8 @@ namespace RefinementSelectors {
   protected: //overloads
     scalar* precalc_rvals[H2D_MAX_ELEMENT_SONS][3]; ///< Array of arrays of precalculates values: VALUE, DX, DY.
 
+    virtual void set_current_order_range(Element* element); ///< Sets current maximum and minimum order. If the max_order is H2DRS_DEFAULT_ORDER, in the case of linear elements it uses 9 and in the case of curvilinear elements it depends on iro_cache (how curved they are).
+
     virtual scalar** precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order); ///< Returns array of arrays of precalculate values of a son.
     virtual double** build_projection_matrix(Shapeset& shapeset, double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes); ///< Builds a projection matrix.
     virtual scalar evaluate_rsh_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx); ///> Evaluate a single value of the right side for a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.

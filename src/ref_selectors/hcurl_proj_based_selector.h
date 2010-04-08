@@ -20,6 +20,8 @@
 
 #include "proj_based_selector.h"
 
+#define H2DRS_MAX_HCURL_ORDER 6 ///< Maximum Hcurl order.
+
 namespace RefinementSelectors {
 
   class HERMES2D_API HcurlProjBasedSelector : public ProjBasedSelector { ///< Selector that does HP-adaptivity in Hcurl space using projections.
@@ -27,6 +29,8 @@ namespace RefinementSelectors {
     HcurlProjBasedSelector(AdaptType adapt_type = H2D_HP_ANISO, double conv_exp = 1.0, int max_order = H2DRS_DEFAULT_ORDER, HcurlShapeset* user_shapeset = NULL);
   protected: //overloads
     scalar* precalc_rvals[H2D_MAX_ELEMENT_SONS][4]; ///< Array of arrays of precalculates values: VALUE_0, VALUE_1, D1DX, D0DY.
+
+    virtual void set_current_order_range(Element* element); ///< Sets current maximum and minimum order.
 
     virtual scalar** precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order); ///< Returns array of arrays of precalculate values of a son.
     virtual double** build_projection_matrix(Shapeset& shapeset, double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes); ///< Builds a projection matrix.
