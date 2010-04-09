@@ -20,18 +20,19 @@
 
 // common headers
 #include <stdexcept>
-#include <sstream>
+#include <cstdarg>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h> //allows to use offsetof
 #include <string.h>
-#include <cstdarg>
 #include <assert.h>
 #include <pthread.h>
 #include <math.h>
 #include <time.h>
 
 #include <float.h>
+
+#include <cmath>
 
 // STL stuff
 #include <algorithm>

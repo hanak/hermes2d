@@ -452,11 +452,11 @@ namespace RefinementSelectors {
 
     //find first valid score that diffres from the next scores
     int imax = 1;
-    while ((imax+1) < num_cands && abs(candidates[imax].score - candidates[imax+1].score) < H2DRS_SCORE_DIFF_ZERO) {
+    while ((imax+1) < num_cands && std::abs(candidates[imax].score - candidates[imax+1].score) < H2DRS_SCORE_DIFF_ZERO) {
       //find the first candidate with a different score
       Cand& cand_current = candidates[imax];
       int imax_end = imax + 2;
-      while (imax_end < num_cands && abs(cand_current.score - candidates[imax_end].score) < H2DRS_SCORE_DIFF_ZERO)
+      while (imax_end < num_cands && std::abs(cand_current.score - candidates[imax_end].score) < H2DRS_SCORE_DIFF_ZERO)
         imax_end++;
 
       imax = imax_end;
