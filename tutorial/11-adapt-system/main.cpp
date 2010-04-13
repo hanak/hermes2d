@@ -35,7 +35,7 @@ using namespace RefinementSelectors;
 //       -u'' + K*K*u = K*K in (-1, 1) with zero Dirichlet BC.
 //
 // The following parameters can be changed: In particular, compare hp- and
-// h-adaptivity via the ADAPT_TYPE option, and compare the multi-mesh vs.
+// h-adaptivity via the CAND_LIST option, and compare the multi-mesh vs.
 // single-mesh using the MULTI parameter.
 
 const int P_INIT_U = 2;          // Initial polynomial degree for u.
@@ -57,7 +57,7 @@ const int STRATEGY = 1;          // Adaptive strategy:
                                  // STRATEGY = 2 ... refine all elements whose error is larger
                                  //   than THRESHOLD.
                                  // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-AdaptType ADAPT_TYPE = H2D_HP_ANISO;        // Type of automatic adaptivity:
+CandList CAND_LIST = H2D_HP_ANISO;        // Type of automatic adaptivity:
 const int MESH_REGULARITY = -1;  // Maximum allowed level of hanging nodes:
                                  // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                  // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
   SimpleGraph graph_dof, graph_cpu;
 
   // refinement selector
-  H1ProjBasedSelector selector(ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
+  H1ProjBasedSelector selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // adaptivity loop
   int it = 1;

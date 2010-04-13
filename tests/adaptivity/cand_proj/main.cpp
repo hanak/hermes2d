@@ -130,8 +130,8 @@ bool init(bool tri) {
     else {
       test_cases.push_back(TestCase("x^2", func_x2_val, func_x2_dx, func_x2_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(2,0)));
       test_cases.push_back(TestCase("x^2 y^2", func_x2y2_val, func_x2y2_dx, func_x2y2_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(2,2)));
-      test_cases.push_back(TestCase("x^3 y", func_x3y1_val, func_x3y1_dx, func_x3y1_dy, H2D_MAKE_QUAD_ORDER(1,1), H2D_MAKE_QUAD_ORDER(3,1)));
-      test_cases.push_back(TestCase("x^3 y^4 + y", func_x3y4y_val, func_x3y4y_dx, func_x3y4y_dy, H2D_MAKE_QUAD_ORDER(2,2), H2D_MAKE_QUAD_ORDER(3,4)));
+      test_cases.push_back(TestCase("x^3 y", func_x3y1_val, func_x3y1_dx, func_x3y1_dy, H2D_MAKE_QUAD_ORDER(2,1), H2D_MAKE_QUAD_ORDER(3,1)));
+      test_cases.push_back(TestCase("x^3 y^4 + y", func_x3y4y_val, func_x3y4y_dx, func_x3y4y_dy, H2D_MAKE_QUAD_ORDER(2,3), H2D_MAKE_QUAD_ORDER(3,4)));
     }
 
     return true;
@@ -191,15 +191,15 @@ int test() {
       if (cur_test_case->should_match(*cand) && abs(cand->error) > H2D_TEST_ZERO) {
         std::stringstream str;
         str << *cand;
-        log_msg("  ! invalid candidate: %s", str.str().c_str());
+        info(" invalid candidate: %s", str.str().c_str());
         failed = true;
       }
       cand++;
     }
     if (!failed)
-      log_msg("Success");
+      info("Success");
     else
-      log_msg("Failed!");
+      info("Failed!");
 
     //next test case
     iter++;
@@ -227,10 +227,10 @@ int main(int argc, char* argv[]) {
 
   if (result == ERROR_SUCCESS)
   {
-    log_msg("Test: Success");
+    info("Test: Success");
   }
   else {
-    log_msg("Test: Failed!");
+    info("Test: Failed!");
   }
   return result;
 }

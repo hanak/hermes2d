@@ -43,7 +43,27 @@ const int STRATEGY = 1;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const AdaptType ADAPT_TYPE = H2D_HP_ANISO;         // Type of automatic adaptivity:
+const CandList CAND_LIST = H2D_HP_ANISO;  // Predefined list of candidates which will be used. Possible values are:
+                                  // H2D_P_ISO: Generates P-candidates only and modifies orders.
+                                  //     In a case of quads, the horizontal order of a candidate
+                                  //     is modified similar to the vertical order and vice versa.
+                                  // H2D_P_ANISO: Generates P-candidates only and and modifies orders.
+                                  //     In a case of quads, the horizontal order of a candidate is
+                                  //     modified independently on the vertical order and vice versa.
+                                  // H2D_H_ISO: Generates H-candidates only and does not modify orders.
+                                  // H2D_H_ANISO: Generates H- and ANISO-candidates and does not modify orders.
+                                  // H2D_HP_ISO: Generates H- and P-candidates only and modifies orders.
+                                  //     In a case of quads, the horizontal order of a candidate is
+                                  //     modified similar to the vertical order and vice versa.
+                                  // H2D_HP_ANISO_H: Generates H-, ANISO- and P-candidates and modifies orders.
+                                  //     In a case of quads, the horizontal order of a candidate is
+                                  //     modified similar to the vertical order and vice versa.
+                                  // H2D_HP_ANISO_P: Generates H- and P-candidates and modifies orders.
+                                  //     In a case of quads, the horizontal order of a candidate is
+                                  //     modified independently on the vertical order and vice versa.
+                                  // H2D_HP_ANISO: Generates H- and P-candidates and modifies orders.
+                                  //     In a case of quads, the horizontal order of a candidate is
+                                  //     modified independently on the vertical order and vice versa.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -126,7 +146,7 @@ int main(int argc, char* argv[])
   UmfpackSolver solver;
 
   // refinement selector  
-  RefinementSelectors::HcurlProjBasedSelector ref_selector(ADAPT_TYPE, 0.5, H2DRS_DEFAULT_ORDER, &shapeset);
+  RefinementSelectors::HcurlProjBasedSelector ref_selector(CAND_LIST, 0.5, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // DOF and CPU convergence graphs
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;

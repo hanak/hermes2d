@@ -37,19 +37,19 @@
 
 namespace RefinementSelectors {
 
-  /// Type of adaptivity. Influences standard generation of candidates.
-  enum AdaptType {
-    H2D_P_ISO,
-    H2D_P_ANISO,
-    H2D_H_ISO,
-    H2D_H_ANISO,
-    H2D_HP_ISO,
-    H2D_HP_ANISO_H,
-    H2D_HP_ANISO_P,
-    H2D_HP_ANISO
+  /// Predefined list of candidates.
+  enum CandList {
+    H2D_P_ISO, ///< P-candidates only. Orders are modified uniformly.
+    H2D_P_ANISO, ///< P-candidates only. Orders are modified non-uniformly.
+    H2D_H_ISO, ///< H-candidates only. Orders are not modified.
+    H2D_H_ANISO, ///< H- and ANISO-candidates only. Orders are not modified.
+    H2D_HP_ISO, ///< H- and P-candidates only. Orders are modified uniformly.
+    H2D_HP_ANISO_H, ///< H-, ANISO- and P-candidates. Orders are modified uniformly.
+    H2D_HP_ANISO_P, ///< H- and P-candidates only. Orders are modified non-uniformly.
+    H2D_HP_ANISO ///< H-, ANISO- and P-candidates. Orders are modified non-uniformly.
   };
 
-  extern H2D_API bool is_hp(const AdaptType adapt_type); ///< Returns true if adapt type is HP.
+  extern H2D_API bool is_hp(const CandList cand_list); ///< Returns true if candidates will be HP in a case of predefined list.
 
   template<typename T>
   class Range { ///< Range of values.
@@ -135,7 +135,7 @@ namespace RefinementSelectors {
       int get_quad_order() const { return H2D_MAKE_QUAD_ORDER(order_h, order_v); }; ///< Returns quad order.
     };
 
-    AdaptType adapt_type; ///< Allowed candidate types.
+    CandList cand_list; ///< Allowed candidate types.
 	  double conv_exp; ///< Convergence power. Modifies difference between DOFs before they are used to calculate the score.
     std::vector<Cand> candidates; ///< A vector of candidates. The first candidate is the original element.
     void evaluate_cands(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const; ///< Calculates maximum quad orders of candidates. Returns 0 if no candidates of given type are generated.
@@ -186,7 +186,7 @@ namespace RefinementSelectors {
     int calc_num_shapes(int mode, int order_h, int order_v, int allowed_type_mask); ///< Calculates number of shapes of up to given order and of allowd types. If order == H2DRS_ORDER_ANY, any order is allowed.
 
   public:
-    OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); /// Contructor. Parameters 'vertex_order' and 'edge_bubble_order' are due to the fact that shapesets return valid index even though given shape is invalid.
+    OptimumSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); /// Contructor. Parameters 'vertex_order' and 'edge_bubble_order' are due to the fact that shapesets return valid index even though given shape is invalid.
     virtual ~OptimumSelector() {};
     virtual bool select_refinement(Element* element, int quad_order, Solution* rsln, ElementToRefine& refinement); ///< Selects refinement.
     virtual void update_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.

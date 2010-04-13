@@ -15,8 +15,8 @@
 namespace RefinementSelectors {
   HcurlShapeset HcurlProjBasedSelector::default_shapeset;
 
-  HcurlProjBasedSelector::HcurlProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, HcurlShapeset* user_shapeset)
-    : ProjBasedSelector(adapt_type, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(), Range<int>(0, H2DRS_MAX_HCURL_ORDER)) {}
+  HcurlProjBasedSelector::HcurlProjBasedSelector(CandList cand_list, double conv_exp, int max_order, HcurlShapeset* user_shapeset)
+    : ProjBasedSelector(cand_list, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(), Range<int>(0, H2DRS_MAX_HCURL_ORDER)) {}
 
   void HcurlProjBasedSelector::set_current_order_range(Element* element) {
     current_max_order = this->max_order;

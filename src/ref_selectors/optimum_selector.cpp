@@ -25,8 +25,8 @@ namespace RefinementSelectors {
     return stream;
   }
 
-  HERMES2D_API bool is_hp(const AdaptType adapt_type) {
-    switch(adapt_type) {
+  HERMES2D_API bool is_hp(const CandList cand_list) {
+    switch(cand_list) {
       case H2D_P_ISO:
       case H2D_P_ANISO:
       case H2D_H_ISO:
@@ -35,7 +35,7 @@ namespace RefinementSelectors {
       case H2D_HP_ANISO_H:
       case H2D_HP_ANISO_P:
       case H2D_HP_ANISO: return true; break;
-      default: error("invalid adapt type %d", adapt_type); return false;
+      default: error("invalid adapt type %d", cand_list); return false;
     }
   }
 
@@ -75,8 +75,8 @@ namespace RefinementSelectors {
       *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
   }
 
-  OptimumSelector::OptimumSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
-    : Selector(max_order), adapt_type(adapt_type)
+  OptimumSelector::OptimumSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
+    : Selector(max_order), cand_list(cand_list)
     , conv_exp(conv_exp), shapeset(shapeset) {
     error_if(shapeset == NULL, "Shapeset is NULL.");
 
@@ -263,7 +263,7 @@ namespace RefinementSelectors {
     bool iso_p = false;
     int start_quad_order = quad_order;
     int last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_p_order_h, order_h+H2DRS_MAX_ORDER_INC), std::min(max_p_order_v, order_v+H2DRS_MAX_ORDER_INC));
-    switch(adapt_type) {
+    switch(cand_list) {
       case H2D_H_ISO:
       case H2D_H_ANISO:
         last_quad_order = start_quad_order; break; //no P-candidates except the original candidate
@@ -280,7 +280,7 @@ namespace RefinementSelectors {
     int start_order_h = std::max(current_min_order, (order_h+1) / 2), start_order_v = std::max(current_min_order, (order_v+1) / 2);
     start_quad_order = H2D_MAKE_QUAD_ORDER(start_order_h, start_order_v);
     last_quad_order = H2D_MAKE_QUAD_ORDER(std::min(max_ha_order_h, std::min(start_order_h + H2DRS_MAX_ORDER_INC, order_h)), std::min(max_ha_order_v, std::min(start_order_v + H2DRS_MAX_ORDER_INC, order_v)));
-    switch(adapt_type) {
+    switch(cand_list) {
       case H2D_H_ISO:
       case H2D_H_ANISO:
         last_quad_order = start_quad_order; break; //no only one candidate will be created
@@ -297,13 +297,13 @@ namespace RefinementSelectors {
 
     //generate all ANISO-candidates
     if (!tri && e->iro_cache < 8 //TODO: find out what iro_cache does and why 8
-      && (adapt_type == H2D_H_ANISO || adapt_type == H2D_HP_ANISO_H || adapt_type == H2D_HP_ANISO)) { 
+      && (cand_list == H2D_H_ANISO || cand_list == H2D_HP_ANISO_H || cand_list == H2D_HP_ANISO)) {
       iso_p = false;
       int start_quad_order_hz = H2D_MAKE_QUAD_ORDER(order_h, std::max(current_min_order, (order_v+1) / 2));
       int last_quad_order_hz = H2D_MAKE_QUAD_ORDER(std::min(max_ha_order_h, order_h+H2DRS_MAX_ORDER_INC), std::min(order_v, H2D_GET_V_ORDER(start_quad_order)+H2DRS_MAX_ORDER_INC));
       int start_quad_order_vt = H2D_MAKE_QUAD_ORDER(std::max(current_min_order, (order_h+1) / 2), order_v);
       int last_quad_order_vt = H2D_MAKE_QUAD_ORDER(std::min(order_h, H2D_GET_H_ORDER(start_quad_order)+H2DRS_MAX_ORDER_INC), std::min(max_ha_order_v, order_v+H2DRS_MAX_ORDER_INC));
-      switch(adapt_type) {
+      switch(cand_list) {
         case H2D_H_ANISO:
           last_quad_order_hz = start_quad_order_hz;
           last_quad_order_vt = start_quad_order_vt;
@@ -557,7 +557,7 @@ namespace RefinementSelectors {
     else {
       //calculate new quad_orders
       int quad_order = orig_quad_order;
-      if (adapt_type != H2D_H_ISO && adapt_type != H2D_H_ANISO) { //H_ISO and H_ANISO has to keep given order
+      if (cand_list != H2D_H_ISO && cand_list != H2D_H_ANISO) { //H_ISO and H_ANISO has to keep given order
         int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
         switch(refinement) {
           case H2D_REFINEMENT_H:

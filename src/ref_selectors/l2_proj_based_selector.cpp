@@ -8,8 +8,8 @@
 namespace RefinementSelectors {
   L2Shapeset L2ProjBasedSelector::default_shapeset;
 
-  L2ProjBasedSelector::L2ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, L2Shapeset* user_shapeset)
-    : ProjBasedSelector(adapt_type, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(1,1), Range<int>(2, H2DRS_MAX_ORDER)) {}
+  L2ProjBasedSelector::L2ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, L2Shapeset* user_shapeset)
+    : ProjBasedSelector(cand_list, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(1,1), Range<int>(2, H2DRS_MAX_ORDER)) {}
 
 //TODO: find out why -2 is used while both H1 and Hcurl use -1
   void L2ProjBasedSelector::set_current_order_range(Element* element) {

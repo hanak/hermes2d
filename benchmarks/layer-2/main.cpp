@@ -36,7 +36,7 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const AdaptType ADAPT_TYPE = H2D_HP_ANISO;         // Type of automatic adaptivity.
+const CandList CAND_LIST = H2D_HP_ANISO;         // Type of automatic adaptivity.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;
 
   // selector
-  H1ProjBasedSelector ref_selector(ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
+  H1ProjBasedSelector ref_selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // adaptivity loop
   int it = 1;

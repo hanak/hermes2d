@@ -22,7 +22,7 @@ namespace RefinementSelectors {
 
   class HERMES2D_API H1ProjBasedSelector : public ProjBasedSelector { ///< Selector that does HP-adaptivity in H1 space using projections.
   public: //API
-    H1ProjBasedSelector(AdaptType adapt_type = H2D_HP_ANISO, double conv_exp = 1.0, int max_order = H2DRS_DEFAULT_ORDER, H1Shapeset* user_shapeset = NULL);
+    H1ProjBasedSelector(CandList cand_list = H2D_HP_ANISO, double conv_exp = 1.0, int max_order = H2DRS_DEFAULT_ORDER, H1Shapeset* user_shapeset = NULL);
   protected: //overloads
     scalar* precalc_rvals[H2D_MAX_ELEMENT_SONS][3]; ///< Array of arrays of precalculates values: VALUE, DX, DY.
 

@@ -37,7 +37,7 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const AdaptType ADAPT_TYPE = H2D_HP_ANISO;  // Type of automatic adaptivity. Influences variability of candidates which are considered.
+const CandList CAND_LIST = H2D_HP_ANISO;  // Type of automatic adaptivity. Influences variability of candidates which are considered.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;
 
   // prepare selector
-  H1ProjBasedSelector selector(ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
+  H1ProjBasedSelector selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // adaptivity loop
   int it = 1;
@@ -213,15 +213,9 @@ int main(int argc, char* argv[])
     // if err_est too large, adapt the mesh
     if (err_est < ERR_STOP) done = true;
     else {
-<<<<<<< HEAD
-      hp.adapt(THRESHOLD, STRATEGY, &selector, MESH_REGULARITY);
+      hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndof = assign_dofs(&space);
       if (ndof >= NDOF_STOP) done = true;
-=======
-      hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
-      ndofs = space.assign_dofs();
-      if (ndofs >= NDOF_STOP) done = true;
->>>>>>> Reorganized adaptivity classes
     }
 
     // time measurement

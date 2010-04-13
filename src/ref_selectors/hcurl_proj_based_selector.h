@@ -26,7 +26,7 @@ namespace RefinementSelectors {
 
   class HERMES2D_API HcurlProjBasedSelector : public ProjBasedSelector { ///< Selector that does HP-adaptivity in Hcurl space using projections.
   public: //API
-    HcurlProjBasedSelector(AdaptType adapt_type = H2D_HP_ANISO, double conv_exp = 1.0, int max_order = H2DRS_DEFAULT_ORDER, HcurlShapeset* user_shapeset = NULL);
+    HcurlProjBasedSelector(CandList cand_list = H2D_HP_ANISO, double conv_exp = 1.0, int max_order = H2DRS_DEFAULT_ORDER, HcurlShapeset* user_shapeset = NULL);
   protected: //overloads
     scalar* precalc_rvals[H2D_MAX_ELEMENT_SONS][4]; ///< Array of arrays of precalculates values: VALUE_0, VALUE_1, D1DX, D0DY.
 

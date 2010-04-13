@@ -7,8 +7,8 @@
 
 namespace RefinementSelectors {
   
-  ProjBasedSelector::ProjBasedSelector(AdaptType adapt_type, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
-    : OptimumSelector(adapt_type, conv_exp, max_order, shapeset, vertex_order, edge_bubble_order)
+  ProjBasedSelector::ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
+    : OptimumSelector(cand_list, conv_exp, max_order, shapeset, vertex_order, edge_bubble_order)
     , rhs_cache(NULL)
   {
     //clear matrix cache
