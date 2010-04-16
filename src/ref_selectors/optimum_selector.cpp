@@ -39,15 +39,9 @@ namespace RefinementSelectors {
     }
   }
 
-<<<<<<< HEAD
-  OptimumSelector::OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order)
-    : start_order_h(H2D_GET_H_ORDER(start_quad_order)), start_order_v(H2D_GET_V_ORDER(start_quad_order))
-    , end_order_h(H2D_GET_H_ORDER(end_quad_order)), end_order_v(H2D_GET_V_ORDER(end_quad_order))
-=======
   OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order)
     : start_order_h(H2D_GET_H_ORDER(start_quad_order)), start_order_v(H2D_GET_V_ORDER(start_quad_order))
     , end_order_h(H2D_GET_H_ORDER(end_quad_order)), end_order_v(H2D_GET_V_ORDER(end_quad_order))
->>>>>>> Improved test/cand_proj
     , iso_p(iso_p), tgt_quad_order(tgt_quad_order) {
     assert_msg(start_order_h <= end_order_h && start_order_v <= end_order_v, "End orders (H:%d, V:%d) are below start orders (H:%d, V:%d).", end_order_h, end_order_v, start_order_h, start_order_v);
     reset();
@@ -217,6 +211,8 @@ namespace RefinementSelectors {
 
   void OptimumSelector::append_candidates_split(const int start_quad_order, const int last_quad_order, const int split, bool iso_p) {
     //check whether end orders are not lower than start orders
+    if (last_quad_order < 0 || start_quad_order < 0)
+      return;
     if (H2D_GET_H_ORDER(start_quad_order) > H2D_GET_H_ORDER(last_quad_order) || H2D_GET_V_ORDER(start_quad_order) > H2D_GET_V_ORDER(last_quad_order))
       return;
 
@@ -293,10 +289,10 @@ namespace RefinementSelectors {
 
       case H2D_P_ISO:
       case H2D_P_ANISO:
-        last_quad_order = 0; break; //no H-candidate will be generated
+        last_quad_order = -1; break; //no H-candidate will be generated
 
       case H2D_HP_ISO:
-      case H2D_HP_ANISO_P:
+      case H2D_HP_ANISO_H:
         iso_p = true; break; //iso change of orders
     }
     append_candidates_split(start_quad_order, last_quad_order, H2D_REFINEMENT_H, tri || iso_p);
@@ -313,14 +309,28 @@ namespace RefinementSelectors {
         case H2D_H_ANISO:
           last_quad_order_hz = start_quad_order_hz;
           last_quad_order_vt = start_quad_order_vt;
-          break; //no only one candidate will be created
+          break; //only one candidate will be created
+
+        case H2D_HP_ANISO_H:
+          iso_p = true; break; //iso change of orders
+      }
+      if (iso_p) { //make orders uniform: take mininmum order since nonuniformity is caused by different handling of orders along directions
+        int order = std::min(H2D_GET_H_ORDER(start_quad_order_hz), H2D_GET_V_ORDER(start_quad_order_hz));
+        start_quad_order_hz = H2D_MAKE_QUAD_ORDER(order, order);
+        order = std::min(H2D_GET_H_ORDER(start_quad_order_vt), H2D_GET_V_ORDER(start_quad_order_vt));
+        start_quad_order_vt = H2D_MAKE_QUAD_ORDER(order, order);
+
+        order = std::min(H2D_GET_H_ORDER(last_quad_order_hz), H2D_GET_V_ORDER(last_quad_order_hz));
+        last_quad_order_hz = H2D_MAKE_QUAD_ORDER(order, order);
+        order = std::min(H2D_GET_H_ORDER(last_quad_order_vt), H2D_GET_V_ORDER(last_quad_order_vt));
+        last_quad_order_vt = H2D_MAKE_QUAD_ORDER(order, order);
       }
       append_candidates_split(start_quad_order_hz, last_quad_order_hz, H2D_REFINEMENT_ANISO_H, iso_p);
       append_candidates_split(start_quad_order_vt, last_quad_order_vt, H2D_REFINEMENT_ANISO_V, iso_p);
     }
   }
 
-  void OptimumSelector::evaluate_cands(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const {
+  void OptimumSelector::evaluate_cands_order(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const {
     int order_h_cand_h = -1, order_v_cand_h = -1;
     int order_h_cand_p = -1, order_v_cand_p = -1;
     int order_h_cand_aniso = -1, order_v_cand_aniso = -1;

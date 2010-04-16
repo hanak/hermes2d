@@ -140,7 +140,7 @@ namespace RefinementSelectors {
     CandList cand_list; ///< Allowed candidate types.
 	  double conv_exp; ///< Convergence power. Modifies difference between DOFs before they are used to calculate the score.
     std::vector<Cand> candidates; ///< A vector of candidates. The first candidate is the original element.
-    void evaluate_cands(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const; ///< Calculates maximum quad orders of candidates. Returns 0 if no candidates of given type are generated.
+    void evaluate_cands_order(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const; ///< Calculates maximum quad orders of candidates. Returns 0 if no candidates of given type are generated.
 
     void append_candidates_split(const int start_quad_order, const int last_order, const int split, bool uniform); ///< Creates candidates of a given split-type.
 
