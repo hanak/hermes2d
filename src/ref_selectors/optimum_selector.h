@@ -75,6 +75,25 @@ namespace RefinementSelectors {
     };
   };
 
+  class H2D_API OrderPermutator { ///< Permutates orders.
+  protected:
+    int order_h, order_v; ///< Current order
+    int start_order_h, start_order_v; ///< Start orders
+    int end_order_h, end_order_v; ///< End orders
+    bool iso_p; /// True, if increase is iso.
+    int* tgt_quad_order; ///< Target quad order to which the order is written automatically. NULL if none.
+  public:
+    OrderPermutator () {};
+    OrderPermutator (int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order = NULL);
+    bool next(); ///< Returns false if there is not next combination.
+    void reset(); ///< Resets permutator to the start order.
+    int get_order_h() const { return order_h; }; ///< Returns horizontal order.
+    int get_order_v() const { return order_v; }; ///< Returns vertical order.
+    int get_quad_order() const { return H2D_MAKE_QUAD_ORDER(order_h, order_v); }; ///< Returns quad order.
+    int get_start_quad_order() const { return H2D_MAKE_QUAD_ORDER(start_order_h, start_order_v); }; ///< Returns start order.
+    int get_end_quad_order() const { return H2D_MAKE_QUAD_ORDER(end_order_h, end_order_v); }; ///< Returns start order.
+  };
+
   class H2D_API OptimumSelector : public Selector { ///< Selector that chooses an optimal candidates based on error decrease per a new DOF.
   public: //candidates
     struct Cand { ///< A candidate.
@@ -118,23 +137,6 @@ namespace RefinementSelectors {
     const std::vector<Cand>& get_candidates() const { return candidates; }; ///< Returns current candidates.
 
   protected: //candidates
-    class OrderPermutator { ///< Permutates orders.
-    protected:
-      int order_h, order_v; ///< Current order
-      int start_order_h, start_order_v; ///< Start orders
-      int end_order_h, end_order_v; ///< End orders
-      bool iso_p; /// True, if increase is iso.
-      int* tgt_quad_order; ///< Target quad order to which the order is written automatically. NULL if none.
-    public:
-      OrderPermutator () {};
-      OrderPermutator (int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order = NULL);
-      bool next(); ///< Returns false if there is not next combination.
-      void reset(); ///< Resets permutator to the start order.
-      int get_order_h() const { return order_h; }; ///< Returns horizontal order.
-      int get_order_v() const { return order_v; }; ///< Returns vertical order.
-      int get_quad_order() const { return H2D_MAKE_QUAD_ORDER(order_h, order_v); }; ///< Returns quad order.
-    };
-
     CandList cand_list; ///< Allowed candidate types.
 	  double conv_exp; ///< Convergence power. Modifies difference between DOFs before they are used to calculate the score.
     std::vector<Cand> candidates; ///< A vector of candidates. The first candidate is the original element.

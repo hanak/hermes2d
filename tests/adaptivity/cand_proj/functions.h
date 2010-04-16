@@ -1,27 +1,26 @@
 #ifndef __H2D_TEST_CAND_PROJ_H
 #define __H2D_TEST_CAND_PROJ_H
 
-typedef scalar (*ValueFunction) (double x, double y); ///< A function that returns a value.
+//test case
+class TestCase {
+  int _func_quad_order; ///< Function order.
+  int _start_quad_order; ///< Start order of an element.
+  double** _poly_matrix; ///< MxN matrix of polygonal coefficients. The value is calculates [x^0, ..., x^(M-1)] * matrix * [y^0, ..., y^(N-1)]^T
+public:
+  TestCase(int func_quad_order);
+  ~TestCase();
 
-//x2
-extern scalar func_x2_val(double x, double y);
-extern scalar func_x2_dx(double x, double y);
-extern scalar func_x2_dy(double x, double y);
+  bool should_match(const RefinementSelectors::OptimumSelector::Cand& cand); ///< Returns true if the refinement should match the function.
 
-//x2y2
-extern scalar func_x2y2_val(double x, double y);
-extern scalar func_x2y2_dx(double x, double y);
-extern scalar func_x2y2_dy(double x, double y);
+  std::string title() const;
+  int quad_order() const { return _func_quad_order; }
+  int start_quad_order() const { return _start_quad_order; }
+  double** poly_matrix() { return _poly_matrix; };
+};
 
-//x3y1
-extern scalar func_x3y1_val(double x, double y);
-extern scalar func_x3y1_dx(double x, double y);
-extern scalar func_x3y1_dy(double x, double y);
-
-//x3y4
-extern scalar func_x3y4y_val(double x, double y);
-extern scalar func_x3y4y_dx(double x, double y);
-extern scalar func_x3y4y_dy(double x, double y);
+//text functions
+extern scalar func_val(double** poly_matrix, int quad_order, double x, double y);
+extern scalar func_dx(double** poly_matrix, int quad_order, double x, double y);
+extern scalar func_dy(double** poly_matrix, int quad_order, double x, double y);
 
 #endif
-
