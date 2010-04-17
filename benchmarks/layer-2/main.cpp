@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
     else {
       hp.adapt(&ref_selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndof = assign_dofs(&space);
-      if (ndofs >= NDOF_STOP) done = true;
+      if (ndof >= NDOF_STOP) done = true;
     }
 
     // time measurement
