@@ -20,7 +20,7 @@
 #include "optimum_selector.h"
 
 namespace RefinementSelectors {
-  typedef double SonProjectionError[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2]; ///< Error of a son of a candidate for various order combinations. The maximum allowed order is H2DRS_MAX_ORDER+1.
+  typedef double SonProjectionError[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2]; ///< Error of a son of a candidate for various order combinations. The maximum allowed order is H2DRS_MAX_ORDER+1 (for some Hermes2d internal reason).
 
   class H2D_API ProjBasedSelector : public OptimumSelector {
   public: //API
@@ -29,13 +29,15 @@ namespace RefinementSelectors {
     ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order);
 
   protected: //error evaluation
+#define H2DRS_VALCACHE_INVALID 0
+#define H2DRS_VALCACHE_VALID 1
     template<typename T>
     struct ValueCacheItem { ///< An item of a value cache.
-      inline bool is_valid() const { return state != 0; }; ///< Returns true, if value is valid.
-      inline void mark_invalid() { state = 0; }; ///< Marks a value as invalid.
-      inline void mark(int new_state = 1) { state = new_state; }; ///< Sets state of a value cache.
-      inline void set(T new_value) { value = new_value; }; ///< Sets a new value.
-      inline T get() { return value; }; ///< Returns value.
+      bool is_valid() const { return state != H2DRS_VALCACHE_INVALID; }; ///< Returns true, if value is valid.
+      void mark(int new_state = H2DRS_VALCACHE_VALID) { state = new_state; }; ///< Sets state of a value cache.
+      void set(T new_value) { value = new_value; }; ///< Sets a new value.
+      T get() { return value; }; ///< Returns value.
+      ValueCacheItem(const T& value = 0, const int state = H2DRS_VALCACHE_INVALID) : value(value), state(state) {};
     private:
       T value; ///< Value.
       int state; ///< State.

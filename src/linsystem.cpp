@@ -23,6 +23,7 @@
 #include "solution.h"
 #include "config.h"
 #include "limit_order.h"
+#include <algorithm>
 
 void qsort_int(int* pbase, size_t total_elems); // defined in qsort.cpp
 
@@ -421,10 +422,11 @@ void LinSystem::insert_block(scalar** mat, int* iidx, int* jidx, int ilen, int j
 
 void LinSystem::assemble(bool rhsonly)
 {
-  int j, k, m, n, marker;
-  AUTOLA_CL(AsmList, al, wf->neq);
-  AsmList *am, *an;
-  bool bnd[4]; AUTOLA_OR(bool, nat, wf->neq); AUTOLA_OR(bool, isempty, wf->neq);
+  int k, m, n, marker;
+  std::vector<AsmList> al(wf->neq);
+  AsmList* am, * an;
+  bool bnd[4];
+  std::vector<bool> nat(wf->neq), isempty(wf->neq);
   EdgePos ep[4];
   reset_warn_order();
 
@@ -439,9 +441,9 @@ void LinSystem::assemble(bool rhsonly)
   TimePeriod cpu_time;
 
   // create slave pss's for test functions, init quadrature points
-  AUTOLA_OR(PrecalcShapeset*, spss, wf->neq);
+  std::vector<PrecalcShapeset*> spss(wf->neq, NULL);
   PrecalcShapeset *fu, *fv;
-  AUTOLA_CL(RefMap, refmap, wf->neq);
+  std::vector<RefMap> refmap(wf->neq);
   for (int i = 0; i < wf->neq; i++)
   {
     spss[i] = new PrecalcShapeset(pss[i]);
@@ -479,7 +481,7 @@ void LinSystem::assemble(bool rhsonly)
     while ((e = trav.get_next_state(bnd, ep)) != NULL)
     {
       // find a non-NULL e[i]
-      Element* e0;
+      Element* e0 = NULL;
       for (unsigned int i = 0; i < s->idx.size(); i++)
         if ((e0 = e[i]) != NULL) break;
       if (e0 == NULL) continue;
@@ -488,12 +490,12 @@ void LinSystem::assemble(bool rhsonly)
       update_limit_table(e0->get_mode());
 
       // obtain assembly lists for the element at all spaces, set appropriate mode for each pss
-      memset(isempty, 0, sizeof(bool) * wf->neq);
+      std::fill(isempty.begin(), isempty.end(), false);
       for (unsigned int i = 0; i < s->idx.size(); i++)
       {
-        j = s->idx[i];
+        int j = s->idx[i];
         if (e[i] == NULL) { isempty[j] = true; continue; }
-        spaces[j]->get_element_assembly_list(e[i], al+j);
+        spaces[j]->get_element_assembly_list(e[i], &al[j]);
         // todo: neziskavat znova, pokud se element nezmenil
 
         spss[j]->set_active_element(e[i]);
@@ -524,18 +526,18 @@ void LinSystem::assemble(bool rhsonly)
 
           if (!sym) // unsymmetric block
           {
-            for (j = 0; j < an->cnt; j++) {
+            for (int j = 0; j < an->cnt; j++) {
               fu->set_active_shape(an->idx[j]);
-              bi = eval_form(bfv, fu, fv, refmap+n, refmap+m) * an->coef[j] * am->coef[i];
+              bi = eval_form(bfv, fu, fv, &refmap[n], &refmap[m]) * an->coef[j] * am->coef[i];
               if (an->dof[j] < 0) Dir[k] -= bi; else mat[i][j] = bi;
             }
           }
           else // symmetric block
           {
-            for (j = 0; j < an->cnt; j++) {
+            for (int j = 0; j < an->cnt; j++) {
               if (j < i && an->dof[j] >= 0) continue;
               fu->set_active_shape(an->idx[j]);
-              bi = eval_form(bfv, fu, fv, refmap+n, refmap+m) * an->coef[j] * am->coef[i];
+              bi = eval_form(bfv, fu, fv, &refmap[n], &refmap[m]) * an->coef[j] * am->coef[i];
               if (an->dof[j] < 0) Dir[k] -= bi; else mat[i][j] = mat[j][i] = bi;
             }
           }
@@ -552,7 +554,7 @@ void LinSystem::assemble(bool rhsonly)
           insert_block(mat, an->dof, am->dof, an->cnt, am->cnt);
 
           // we also need to take care of the RHS...
-          for (j = 0; j < am->cnt; j++)
+          for (int j = 0; j < am->cnt; j++)
             if (am->dof[j] < 0)
               for (int i = 0; i < an->cnt; i++)
                 if (an->dof[i] >= 0)
@@ -572,7 +574,7 @@ void LinSystem::assemble(bool rhsonly)
         {
           if (am->dof[i] < 0) continue;
           fv->set_active_shape(am->idx[i]);
-          RHS[am->dof[i]] += eval_form(lfv, fv, refmap+m) * am->coef[i];
+          RHS[am->dof[i]] += eval_form(lfv, fv, &refmap[m]) * am->coef[i];
         }
       }
 
@@ -586,9 +588,9 @@ void LinSystem::assemble(bool rhsonly)
         // obtain the list of shape functions which are nonzero on this edge
         for (unsigned int i = 0; i < s->idx.size(); i++) {
           if (e[i] == NULL) continue;
-          j = s->idx[i];
+          int j = s->idx[i];
           if ((nat[j] = (spaces[j]->bc_type_callback(marker) == BC_NATURAL)))
-            spaces[j]->get_edge_assembly_list(e[i], edge, al + j);
+            spaces[j]->get_edge_assembly_list(e[i], edge, &al[j]);
         }
 
         // assemble surface bilinear forms ///////////////////////////////////
@@ -610,10 +612,10 @@ void LinSystem::assemble(bool rhsonly)
           {
             if ((k = am->dof[i]) < 0) continue;
             fv->set_active_shape(am->idx[i]);
-            for (j = 0; j < an->cnt; j++)
+            for (int j = 0; j < an->cnt; j++)
             {
               fu->set_active_shape(an->idx[j]);
-              bi = eval_form(bfs, fu, fv, refmap+n, refmap+m, ep+edge) * an->coef[j] * am->coef[i];
+              bi = eval_form(bfs, fu, fv, &refmap[n], &refmap[m], ep+edge) * an->coef[j] * am->coef[i];
               if (an->dof[j] >= 0) mat[i][j] = bi; else Dir[k] -= bi;
             }
           }
@@ -636,7 +638,7 @@ void LinSystem::assemble(bool rhsonly)
           {
             if (am->dof[i] < 0) continue;
             fv->set_active_shape(am->idx[i]);
-            RHS[am->dof[i]] += eval_form(lfs, fv, refmap+m, ep+edge) * am->coef[i];
+            RHS[am->dof[i]] += eval_form(lfs, fv, &refmap[m], ep+edge) * am->coef[i];
           }
         }
       }
@@ -690,6 +692,7 @@ ExtData<scalar>* LinSystem::init_ext_fns(std::vector<MeshFunction *> &ext, RefMa
 // Initialize shape function values and derivatives (fill in the cache)
 Func<double>* LinSystem::get_fn(PrecalcShapeset *fu, RefMap *rm, const int order)
 {
+  assert_msg(fu->get_active_shape() <= 256, "Actice shape index is greater than a magic number 256");
   Key key(256 - fu->get_active_shape(), order, fu->get_transform(), fu->get_shapeset()->get_id());
   if (cache_fn[key] == NULL)
     cache_fn[key] = init_fn(fu, rm, order);

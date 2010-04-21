@@ -17,11 +17,11 @@
 #define __H2D_MATRIX_H
 
 #include "common.h"
-
+#include <fstream>
 
 /// Creates a new (full) matrix with m rows and n columns with entries of the type T.
 /// The entries can be accessed by matrix[i][j]. To delete the matrix, just
-/// do "delete matrix".
+/// do "delete[] matrix".
 template<typename T>
 T** new_matrix(int m, int n = 0)
 {
@@ -43,6 +43,40 @@ void copy_matrix(T** dest, T** src, int m, int n = 0) {
   for(int i = 0; i < m; i++) {
     memcpy(dest[i], src[i], n*sizeof(T));
   }
+}
+
+/// Saves matrix to a octave file format.
+template<typename T>
+void save_matrix_octave(const std::string& matrix_name, T** matrix, int m, int n = 0, const std::string& filename = std::string()) {
+  if (n == 0) n = m;
+
+  //create filename
+  std::string fname = filename;
+  if (fname.empty())
+    fname = matrix_name + ".mat";
+
+  //open file
+  std::ofstream fout(fname.c_str());
+  if (!fout.is_open()) {
+    error("Unable to save a matrix to a file \"%s\"", fname.c_str());
+    return;
+  }
+
+  //write header
+  fout << std::string("# name: ") << matrix_name << std::endl;
+  fout << std::string("# type: matrix") << std::endl;
+  fout << std::string("# rows: ") << m << std::endl;
+  fout << std::string("# columns: ") << n << std::endl;
+
+  //write contents
+  for(int i = 0; i < m; i++) {
+    for(int k = 0; k < n; k++)
+      fout << ' ' << matrix[i][k];
+    fout << std::endl;
+  }
+
+  //finish
+  fout.close();
 }
 
 /// Transposes an m by n matrix. If m != n, the array matrix in fact has to be

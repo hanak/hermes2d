@@ -235,9 +235,35 @@ void H1Space::get_bubble_assembly_list(Element* e, AsmList* al)
   ElementData* ed = &edata[e->id];
   if (!ed->n) return;
 
-  int* indices = shapeset->get_bubble_indices(ed->order);
-  for (int i = 0, dof = ed->bdof; i < ed->n; i++, dof += stride)
-    al->add_triplet(*indices++, dof, 1.0);
+  //HACK: even though order 2/3 is requested, it returns bubble 3/2
+  int request_quad_order = -1;
+  int order_h = get_h_order(ed->order), order_v = get_v_order(ed->order);
+  if (e->is_triangle()) {
+    order_v = order_h;
+    request_quad_order = order_h;
+  }
+  else {
+    int order = std::max(order_h, order_v);
+    request_quad_order = make_quad_order(order, order);
+  }
+
+  //gather indices
+  int* indices = shapeset->get_bubble_indices(request_quad_order);
+  int num_used = 0, inx = 0, dof = ed->bdof;
+  while (num_used < ed->n) {
+    assert_msg(inx < shapeset->get_num_bubbles(request_quad_order), "All provided bubble indices processed but still %d requested, element #%d", ed->n - num_used, e->id);
+
+    //check if bubble satisfies requested order
+    int bubble_quad_order = shapeset->get_order(indices[inx]);
+    if (order_h >= get_h_order(bubble_quad_order) && order_v >= get_v_order(bubble_quad_order)) {
+      al->add_triplet(indices[inx], dof, 1.0);
+      dof += stride;
+      num_used++;
+    }
+
+    //next bubble
+    inx++;
+  }
 }
 
 

@@ -101,7 +101,8 @@ void Space::set_element_order(int id, int order)
   H2D_CHECK_ORDER(order);
 
   resize_tables();
-  if (mesh->get_element(id)->is_quad() && H2D_GET_V_ORDER(order) == 0)
+  assert_msg(mesh->get_element(id)->is_quad() && H2D_GET_V_ORDER(order) != 0, "Element #%d is quad but given vertical order is zero", id);
+  if (mesh->get_element(id)->is_quad() && H2D_GET_V_ORDER(order) == 0) //FIXME: Hcurl uses zero orders
      order = H2D_MAKE_QUAD_ORDER(order, order);
   edata[id].order = order;
   seq++;
@@ -229,7 +230,7 @@ void Space::set_mesh(Mesh* mesh)
 
 void Space::propagate_zero_orders(Element* e)
 {
-  warn_if(get_element_order(e->id) != 0, "zeroing order of an element ID:%d, original order (H:%d; V:%d)", e->id, get_h_order(get_element_order(e->id)), get_v_order(get_element_order(e->id)));
+  warn_if(get_element_order(e->id) != 0, "zeroing order of an element ID:%d, original order (H:%d; V:%d)", e->id, H2D_GET_H_ORDER(get_element_order(e->id)), H2D_GET_V_ORDER(get_element_order(e->id)));
   set_element_order(e->id, 0);
   if (!e->active)
     for (int i = 0; i < 4; i++)

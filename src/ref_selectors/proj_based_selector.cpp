@@ -28,8 +28,7 @@ namespace RefinementSelectors {
     for(int i = 0; i < H2DRS_MAX_ORDER+1; i++) {
       for(int k = 0; k < H2DRS_MAX_ORDER+1; k++) {
         if (proj_matrices[i][k] != NULL)
-          free(proj_matrices[i][k]);
-
+          delete[] proj_matrices[i][k];
       }
     }
   }
@@ -213,7 +212,8 @@ namespace RefinementSelectors {
     std::vector<ShapeInx>& full_shape_indices = shape_indices[mode];
 
     //clenup of the cache
-    memset(rhs_cache, 0, sizeof(ValueCacheItem<scalar>) * max_shape_inx[mode]); //TODO: can be done efficient by remembering the previous order during creating a list of indices for current range of orders
+    for(int i = 0; i <= max_shape_inx[mode]; i++)
+      rhs_cache[i] = ValueCacheItem<scalar>();
 
     //calculate for all orders
     double sub_area_corr_coef = 1.0 / num_sub;
@@ -284,7 +284,7 @@ namespace RefinementSelectors {
     } while (order_perm.next());
 
     //clenaup
-    free(proj_matrix);
+    delete[] proj_matrix;
     delete[] right_side;
     delete[] shape_inxs;
     delete[] indx;
