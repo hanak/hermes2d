@@ -330,41 +330,32 @@ namespace RefinementSelectors {
     }
   }
 
-  void OptimumSelector::evaluate_cands_order(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const {
-    int order_h_cand_h = -1, order_v_cand_h = -1;
-    int order_h_cand_p = -1, order_v_cand_p = -1;
-    int order_h_cand_aniso = -1, order_v_cand_aniso = -1;
-
+  void OptimumSelector::update_cands_info(CandsInfo& info_h, CandsInfo& info_p, CandsInfo& info_aniso) const {
     std::vector<Cand>::const_iterator cand = candidates.begin();
     while (cand != candidates.end()) {
-      int* order_h = NULL, * order_v = NULL;
-      if (cand->split == H2D_REFINEMENT_H) { order_h = &order_h_cand_h; order_v = &order_v_cand_h; }
-      else if (cand->split == H2D_REFINEMENT_P) { order_h = &order_h_cand_p; order_v = &order_v_cand_p; }
-      else if (cand->split == H2D_REFINEMENT_ANISO_H || cand->split == H2D_REFINEMENT_ANISO_V) { order_h = &order_h_cand_aniso; order_v = &order_v_cand_aniso; }
-      else { error("Invalid candidate type: %d", cand->split); };
+      CandsInfo* info = NULL;
+      if (cand->split == H2D_REFINEMENT_H) info = &info_h;
+      else if (cand->split == H2D_REFINEMENT_P) info = &info_p;
+      else if (cand->split == H2D_REFINEMENT_ANISO_H || cand->split == H2D_REFINEMENT_ANISO_V) info = &info_aniso;
+      else { error("Invalid candidate type: %d.", cand->split); };
+
+      //evaluate sons of candidates
       const int num_sons = cand->get_num_sons();
       for(int i = 0; i < num_sons; i++) {
-        *order_h = std::max(*order_h, H2D_GET_H_ORDER(cand->p[i]));
-        *order_v = std::max(*order_v, H2D_GET_V_ORDER(cand->p[i]));
+        int son_order_h = H2D_GET_H_ORDER(cand->p[i]), son_order_v = H2D_GET_H_ORDER(cand->p[i]);
+        if (son_order_h != son_order_v)
+          info->uniform_orders = false;
+        if (info->min_quad_order < 0 || info->max_quad_order < 0)
+          info->min_quad_order = info->max_quad_order = H2D_MAKE_QUAD_ORDER(son_order_h, son_order_v);
+        else {
+          info->min_quad_order = H2D_MAKE_QUAD_ORDER(std::min(H2D_GET_H_ORDER(info->min_quad_order), son_order_h), std::min(H2D_GET_V_ORDER(info->min_quad_order), son_order_v));
+          info->max_quad_order = H2D_MAKE_QUAD_ORDER(std::max(H2D_GET_H_ORDER(info->max_quad_order), son_order_h), std::max(H2D_GET_V_ORDER(info->max_quad_order), son_order_v));
+        }
       }
+
+      //next candidate
       cand++;
     }
-
-    //encode
-    if (order_h_cand_h >= 0 && order_v_cand_h >= 0)
-      *max_quad_order_h = H2D_MAKE_QUAD_ORDER(order_h_cand_h, order_v_cand_h);
-    else
-      *max_quad_order_h = -1;
-
-    if (order_h_cand_p >= 0 && order_v_cand_p >= 0)
-      *max_quad_order_p = H2D_MAKE_QUAD_ORDER(order_h_cand_p, order_v_cand_p);
-    else
-      *max_quad_order_p = -1;
-
-    if (order_h_cand_aniso >= 0 && order_v_cand_aniso >= 0)
-      *max_quad_order_aniso = H2D_MAKE_QUAD_ORDER(order_h_cand_aniso, order_v_cand_aniso);
-    else
-      *max_quad_order_aniso = -1;
   }
 
   void OptimumSelector::evaluate_cands_dof(Element* e, Solution* rsln) {

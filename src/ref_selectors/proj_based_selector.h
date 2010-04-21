@@ -48,14 +48,8 @@ namespace RefinementSelectors {
 
     virtual void evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error); ///< Calculates error of candidates.
 
-    /// \brief Calculate various projection errors for sons of a candidates of given combination of orders. Errors are not normalized. Overloadable.
-    /// \param[in] e Element which is being processed.
-    /// \param[in] rsln Reference solution.
-    /// \param[out] herr Errors of sons of H-candidate. < 0 if there are no H-candidates.
-    /// \param[out] anisoerr Errors of sons of ANISO-candidates. < 0 if there are no ANISO-candidates.
-    /// \param[out] perr Errros of sons of P-candidates. < 0 if there are no P-candidates.
-    virtual void calc_projection_errors(Element* e, const int max_quad_order_h, const int max_quad_order_p, const int max_quad_order_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr);
-    void calc_proj_error_cand_son(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_elems, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, int max_quad_order, SonProjectionError errors); ///< Calculate projection errors.
+    virtual void calc_projection_errors(Element* e, const CandsInfo& info_h, const CandsInfo& info_p, const CandsInfo& info_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr); ///< Calculates various projection errors for sons of a candidates of given combination of orders. Errors are not normalized. Overloadable.
+    void calc_proj_error_cand_son(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_elems, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, const CandsInfo& info, SonProjectionError errors); ///< Calculate projection errors.
 
   protected: //projection
     struct ElemProj { ///< Element projection parameters.

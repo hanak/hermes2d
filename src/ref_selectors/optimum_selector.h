@@ -137,10 +137,18 @@ namespace RefinementSelectors {
     const std::vector<Cand>& get_candidates() const { return candidates; }; ///< Returns current candidates.
 
   protected: //candidates
+    struct CandsInfo { ///< Information about candidates.
+      bool uniform_orders; ///< True if all sons of all examined candidates have uniform orders
+      int min_quad_order; ///< Minimum quad order of all sons of all examined candidates.
+      int max_quad_order; ///< Maximum quad order of all sons of all examined candidates.
+      CandsInfo() : uniform_orders(false), min_quad_order(-1), max_quad_order(-1) {}; ///< Default constructor. Creates a state that defines no candidates at all.
+      bool is_empty() const { return (min_quad_order < 0 || max_quad_order < 0); }; ///< Returns true if there are no examined candidates.
+    };
+
     CandList cand_list; ///< Allowed candidate types.
 	  double conv_exp; ///< Convergence power. Modifies difference between DOFs before they are used to calculate the score.
     std::vector<Cand> candidates; ///< A vector of candidates. The first candidate is the original element.
-    void evaluate_cands_order(int* max_quad_order_h, int* max_quad_order_p, int* max_quad_order_aniso) const; ///< Calculates maximum quad orders of candidates. Returns 0 if no candidates of given type are generated.
+    void update_cands_info(CandsInfo& info_h, CandsInfo& info_p, CandsInfo& info_aniso) const; ///< Updates information (min order, max order) about candidates. Initial information is provided.
 
     void append_candidates_split(const int start_quad_order, const int last_order, const int split, bool uniform); ///< Creates candidates of a given split-type.
 

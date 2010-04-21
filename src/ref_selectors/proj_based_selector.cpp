@@ -37,12 +37,12 @@ namespace RefinementSelectors {
     bool tri = e->is_triangle();
 
     // find range of orders
-    int max_quad_order_h, max_quad_order_p, max_quad_order_aniso;
-    evaluate_cands_order(&max_quad_order_h, &max_quad_order_p, &max_quad_order_aniso);
+    CandsInfo info_h, info_p, info_aniso;
+    update_cands_info(info_h, info_p, info_aniso);
 
     // calculate (partial) projection errors
     SonProjectionError herr[4], anisoerr[4], perr;
-    calc_projection_errors(e, max_quad_order_h, max_quad_order_p, max_quad_order_aniso, rsln, herr, anisoerr, perr);
+    calc_projection_errors(e, info_h, info_p, info_aniso, rsln, herr, anisoerr, perr);
 
     //evaluate errors and dofs
     double sum_err = 0.0;
@@ -119,10 +119,10 @@ namespace RefinementSelectors {
     *dev_error = sqrt(sum_sqr_err/num_processed - sqr(*avg_error)); // deviation is square root of variance
   }
 
-  void ProjBasedSelector::calc_projection_errors(Element* e, const int max_quad_order_h, const int max_quad_order_p, const int max_quad_order_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr) {
-    assert_msg(max_quad_order_h < 0 || (H2D_GET_H_ORDER(max_quad_order_h) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(max_quad_order_h) <= H2DRS_MAX_ORDER), "E maximum allowed order of a son of H-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(max_quad_order_h), H2D_GET_V_ORDER(max_quad_order_h));
-    assert_msg(max_quad_order_p < 0 || (H2D_GET_H_ORDER(max_quad_order_p) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(max_quad_order_p) <= H2DRS_MAX_ORDER), "E maximum allowed order of a son of P-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(max_quad_order_p), H2D_GET_V_ORDER(max_quad_order_p));
-    assert_msg(max_quad_order_aniso < 0 || (H2D_GET_H_ORDER(max_quad_order_aniso) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(max_quad_order_aniso) <= H2DRS_MAX_ORDER), "E maximum allowed order of a son of ANISO-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(max_quad_order_aniso), H2D_GET_V_ORDER(max_quad_order_aniso));
+  void ProjBasedSelector::calc_projection_errors(Element* e, const CandsInfo& info_h, const CandsInfo& info_p, const CandsInfo& info_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError anisoerr[4], SonProjectionError perr) {
+    assert_msg(info_h.is_empty() || (H2D_GET_H_ORDER(info_h.max_quad_order) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(info_h.max_quad_order) <= H2DRS_MAX_ORDER), "E maximum allowed order of a son of H-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(info_h.max_quad_order), H2D_GET_V_ORDER(info_h.max_quad_order));
+    assert_msg(info_p.is_empty() || (H2D_GET_H_ORDER(info_p.max_quad_order) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(info_p.max_quad_order) <= H2DRS_MAX_ORDER), "E maximum allowed order of a son of P-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(info_p.max_quad_order), H2D_GET_V_ORDER(info_p.max_quad_order));
+    assert_msg(info_aniso.is_empty() || (H2D_GET_H_ORDER(info_aniso.max_quad_order) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(info_aniso.max_quad_order) <= H2DRS_MAX_ORDER), "E maximum allowed order of a son of ANISO-candidate is %d but order (H:%d,V:%d) requested", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(info_aniso.max_quad_order), H2D_GET_V_ORDER(info_aniso.max_quad_order));
 
     int mode = e->get_mode();
 
@@ -151,7 +151,7 @@ namespace RefinementSelectors {
     }
 
     //H-candidates
-    if (max_quad_order_h >= 0) {
+    if (!info_h.is_empty()) {
       Trf trf_identity = { {1.0, 1.0}, {0.0, 0.0} };
       Trf* p_trf_identity[1] = { &trf_identity };
       double coef_mm = 1;
@@ -159,12 +159,12 @@ namespace RefinementSelectors {
         scalar **sub_rval[1] = { rval[son] };
         calc_proj_error_cand_son(mode, gip_points, num_gip_points
           , 1, &base_element->sons[son], p_trf_identity, sub_rval, &coef_mm, &coef_mm
-          , max_quad_order_h, herr[son]);
+          , info_h, herr[son]);
       }
     }
 
     //ANISO-candidates
-    if (max_quad_order_aniso >= 0) {
+    if (!info_aniso.is_empty()) {
       const double mx[4] = { 2.0, 2.0, 1.0, 1.0}; //scale coefficients of dx for X-axis due to trasformations
       const double my[4] = { 1.0, 1.0, 2.0, 2.0}; //scale coefficients of dy for Y-axis due to trasformations
       const int sons[4][2] = { {0,1}, {3,2}, {0,3}, {1,2} }; //indices of sons for sub-areas
@@ -176,12 +176,12 @@ namespace RefinementSelectors {
         double coefs_mx[2] = { mx[version], mx[version] }, coefs_my[2] = { my[version], my[version] };
         calc_proj_error_cand_son(mode, gip_points, num_gip_points
           , 2, sub_elems, sub_trfs, sub_rval, coefs_mx, coefs_my
-          , max_quad_order_aniso, anisoerr[version]);
+          , info_aniso, anisoerr[version]);
       }
     }
 
     //P-candidates
-    if (max_quad_order_p >= 0) {
+    if (!info_p.is_empty()) {
       Trf* src_trfs = NULL;
       if (mode == MODE_TRIANGLE)
         src_trfs = tri_trf;
@@ -192,14 +192,14 @@ namespace RefinementSelectors {
       double coefs_mm[4] = { 2.0, 2.0, 2.0, (mode == MODE_TRIANGLE) ? -2.0 : 2.0 };
       calc_proj_error_cand_son(mode, gip_points, num_gip_points
         , 4, base_element->sons, sub_trfs, sub_rval, coefs_mm, coefs_mm
-        , max_quad_order_p, perr);
+        , info_p, perr);
     }
   }
 
   void ProjBasedSelector::calc_proj_error_cand_son(const int mode
     , double3* gip_points, int num_gip_points
     , const int num_sub, Element** sub_elems, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my
-    , int max_quad_order
+    , const CandsInfo& info
     , SonProjectionError errors
     ) {
     //allocate space
@@ -217,7 +217,7 @@ namespace RefinementSelectors {
 
     //calculate for all orders
     double sub_area_corr_coef = 1.0 / num_sub;
-    OrderPermutator order_perm(H2D_MAKE_QUAD_ORDER(current_min_order, current_min_order), max_quad_order, mode == MODE_TRIANGLE);
+    OrderPermutator order_perm(info.min_quad_order, info.max_quad_order, mode == MODE_TRIANGLE || info.uniform_orders);
     do {
       int quad_order = order_perm.get_quad_order();
       int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);
