@@ -286,17 +286,17 @@ void Adapt::homogenize_shared_mesh_orders(Mesh** meshes) {
   for (int i = 0; i < num_comps; i++) {
     for_all_active_elements(e, meshes[i]) {
       int current_quad_order = spaces[i]->get_element_order(e->id);
-      int current_order_h = get_h_order(current_quad_order), current_order_v = get_v_order(current_quad_order);
+      int current_order_h = H2D_GET_H_ORDER(current_quad_order), current_order_v = H2D_GET_V_ORDER(current_quad_order);
 
       for (int j = 0; j < num_comps; j++)
         if ((j != i) && (meshes[j] == meshes[i])) // components share the mesh
         {
           int quad_order = spaces[j]->get_element_order(e->id);
-          current_order_h = std::max(current_order_h, get_h_order(quad_order));
-          current_order_v = std::max(current_order_v, get_v_order(quad_order));
+          current_order_h = std::max(current_order_h, H2D_GET_H_ORDER(quad_order));
+          current_order_v = std::max(current_order_v, H2D_GET_V_ORDER(quad_order));
         }
 
-      spaces[i]->set_element_order(e->id, make_quad_order(current_order_h, current_order_v));
+      spaces[i]->set_element_order(e->id, H2D_MAKE_QUAD_ORDER(current_order_h, current_order_v));
     }
   }
 }

@@ -8,6 +8,7 @@ using namespace RefinementSelectors;
 ///  Parameters
 ///  - P_INIT=1
 ///  - THERSHOLD=0.3
+///  - STRATEGY=0
 ///  - CAND_LIST=HP_ANISO
 ///  - MESH_REGULARITY=-1
 ///  - ERR_STOP=0.1

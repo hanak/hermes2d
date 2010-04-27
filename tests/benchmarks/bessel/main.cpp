@@ -3,7 +3,21 @@
 
 using namespace RefinementSelectors;
 
-// This test makes sure that the benchmark "bessel" works correctly.
+/// This test makes sure that the benchmark "bessel" works correctly.
+///
+///  Parameters
+///  - P_INIT=1
+///  - THRESHOLD=0.3
+///  - STRATEGY=1
+///  - CAND_LIST=HP_ANISO
+///  - MESH_REGULARITY=-1
+///  - CONV_EXP=1.0
+///  - ERR_STOP=0.1
+///  - NDOF_STOP=40000
+///
+///  Results for given parameters
+///  - DOFs: 3746
+///  - DOFs: 4780 (CONV_EXP=0.5)
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
 const double THRESHOLD = 0.3;     // This is a quantitative parameter of the adapt(...) function and

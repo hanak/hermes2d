@@ -3,7 +3,20 @@
 
 using namespace RefinementSelectors;
 
-// This test makes sure that the benchmark "screen" works correctly.
+/// This test makes sure that the benchmark "screen" works correctly.
+///
+///  Parameters
+///  - P_INIT=1
+///  - THERSHOLD=0.5
+///  - STRATEGY=1
+///  - CAND_LIST=HP_ANISO
+///  - MESH_REGULARITY=-1
+///  - ERR_STOP=0.1
+///  - CONV_EXP=1.0
+///  - NDOF_STOP=40000
+///
+///  Results for given parameters
+///  - DOFs: 4476
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
 const double THRESHOLD = 0.5;     // This is a quantitative parameter of the adapt(...) function and

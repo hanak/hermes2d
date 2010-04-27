@@ -184,13 +184,13 @@ namespace RefinementSelectors {
     //P-candidates
     if (!info_p.is_empty()) {
       Trf* src_trfs = NULL;
-      if (mode == MODE_TRIANGLE)
+      if (mode == H2D_MODE_TRIANGLE)
         src_trfs = tri_trf;
       else
         src_trfs = quad_trf;
       Trf* sub_trfs[4] = { &src_trfs[0], &src_trfs[1], &src_trfs[2], &src_trfs[3] };
       scalar **sub_rval[4] = { rval[0], rval[1], rval[2], rval[3] };
-      double coefs_mm[4] = { 2.0, 2.0, 2.0, (mode == MODE_TRIANGLE) ? -2.0 : 2.0 };
+      double coefs_mm[4] = { 2.0, 2.0, 2.0, (mode == H2D_MODE_TRIANGLE) ? -2.0 : 2.0 };
       calc_proj_error_cand_son(mode, gip_points, num_gip_points
         , 4, base_element->sons, sub_trfs, sub_rval, coefs_mm, coefs_mm
         , info_p, perr);
@@ -219,7 +219,7 @@ namespace RefinementSelectors {
 
     //calculate for all orders
     double sub_area_corr_coef = 1.0 / num_sub;
-    OrderPermutator order_perm(info.min_quad_order, info.max_quad_order, mode == MODE_TRIANGLE || info.uniform_orders);
+    OrderPermutator order_perm(info.min_quad_order, info.max_quad_order, mode == H2D_MODE_TRIANGLE || info.uniform_orders);
     do {
       int quad_order = order_perm.get_quad_order();
       int order_h = H2D_GET_H_ORDER(quad_order), order_v = H2D_GET_V_ORDER(quad_order);

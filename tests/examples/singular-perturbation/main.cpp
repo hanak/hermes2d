@@ -3,7 +3,23 @@
 
 using namespace RefinementSelectors;
 
-//  This test makes sure that the example "singular-perturbation" works correctly.
+///  This test makes sure that the example "singular-perturbation" works correctly.
+///
+///  Parameters
+///  - INIT_REF_NUM=1
+///  - INIT_REF_NUM_BDY=3
+///  - P_INIT=1
+///  - THRESHOLD=0.3
+///  - STRATEGY=0
+///  - CAND_LIST=HP_ANISO
+///  - MESH_REGULARITY=-1
+///  - CONV_EXP=1.0
+///  - ERR_STOP=0.001
+///  - NDOF_STOP=100000
+///
+///  Results for given parameters
+///  - DOFs: 5217
+///  - DOFs: 3433 (CONV_EXP=0.5)
 
 const int INIT_REF_NUM = 1;       // Number of initial mesh refinements (the original mesh is just one element)
 const int INIT_REF_NUM_BDY = 3;   // Number of initial mesh refinements towards the boundary
