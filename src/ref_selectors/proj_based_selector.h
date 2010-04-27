@@ -42,8 +42,9 @@ namespace RefinementSelectors {
       T value; ///< Value.
       int state; ///< State.
     };
+    typedef double** ProjMatrixCache[H2DRS_MAX_ORDER+1][H2DRS_MAX_ORDER+1]; ///< Projection matrix cache type. Defines space for all possible combination of orders.
 
-    double** proj_matrices[H2DRS_MAX_ORDER+1][H2DRS_MAX_ORDER+1]; ///< An array of projection matrices. Used functions are defined through shape_inx. Index to the array is the size. All matrices are square. If record is NULL, the corresponding matrix has to be calculated.
+    ProjMatrixCache proj_matrix_cache[H2D_NUM_MODES]; ///< An array of projection matrices. Used functions are defined through shape_inx. Index to the array is the size. All matrices are square. If record is NULL, the corresponding matrix has to be calculated.
     ValueCacheItem<scalar>* rhs_cache; ///< An array of RHS values. Valid only during evalution of proj_calc_err_son.
 
     virtual void evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error); ///< Calculates error of candidates.

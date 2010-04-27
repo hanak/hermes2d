@@ -236,11 +236,11 @@ void H1Space::get_bubble_assembly_list(Element* e, AsmList* al)
   if (!ed->n) return;
 
   //HACK: even though order 2/3 is requested, it returns bubble 3/2
-  int request_quad_order = -1;
   int order_h = get_h_order(ed->order), order_v = get_v_order(ed->order);
+  int request_quad_order = -1;
   if (e->is_triangle()) {
-    order_v = order_h;
     request_quad_order = order_h;
+    order_v = order_h;
   }
   else {
     int order = std::max(order_h, order_v);

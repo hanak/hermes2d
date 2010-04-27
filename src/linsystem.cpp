@@ -162,7 +162,7 @@ static inline void page_add_ij(Page** pages, int i, int j)
 void LinSystem::precalc_sparse_structure(Page** pages)
 {
   int i, j, m, n;
-  AUTOLA_CL(AsmList, al, wf->neq);
+  std::vector<AsmList> al(wf->neq);
   AsmList *am, *an;
   AUTOLA_OR(Mesh*, meshes, wf->neq);
   bool** blocks = wf->get_blocks();
@@ -180,7 +180,7 @@ void LinSystem::precalc_sparse_structure(Page** pages)
     // obtain assembly lists for the element at all spaces
     for (i = 0; i < wf->neq; i++)
       if (e[i] != NULL)
-        spaces[i]->get_element_assembly_list(e[i], al + i);
+        spaces[i]->get_element_assembly_list(e[i], &al[i]);
       // todo: neziskavat znova, pokud se element nezmenil
 
     // go through all equation-blocks of the local stiffness matrix
@@ -188,8 +188,8 @@ void LinSystem::precalc_sparse_structure(Page** pages)
       for (n = 0; n < wf->neq; n++)
         if (blocks[m][n] && e[m] != NULL && e[n] != NULL)
         {
-          am = al + m;
-          an = al + n;
+          am = &al[m];
+          an = &al[n];
 
           // pretend assembling of the element stiffness matrix
           if (mat_row)
@@ -692,7 +692,6 @@ ExtData<scalar>* LinSystem::init_ext_fns(std::vector<MeshFunction *> &ext, RefMa
 // Initialize shape function values and derivatives (fill in the cache)
 Func<double>* LinSystem::get_fn(PrecalcShapeset *fu, RefMap *rm, const int order)
 {
-  assert_msg(fu->get_active_shape() <= 256, "Actice shape index is greater than a magic number 256");
   Key key(256 - fu->get_active_shape(), order, fu->get_transform(), fu->get_shapeset()->get_id());
   if (cache_fn[key] == NULL)
     cache_fn[key] = init_fn(fu, rm, order);

@@ -1,22 +1,22 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
 
+using namespace RefinementSelectors;
+
 ///  This test makes sure that the benchmark "layer" works correctly.
 ///
 ///  Parameters
-///  * P_INIT=1
-///  * THRESHOLD=0.3
-///  * ADAPT_TYPE=HP, P-cand order + 2 allowed
-///  * ISO_ONLY=false
-///  * MESH_REGULARITY=-1
-///  * CONV_EXP=1.0
-///  * ERR_STOP=0.1
-///  * NDOF_STOP=60000
-///  * SLOPE = 60
+///  - P_INIT=1
+///  - THRESHOLD=0.3
+///  - CAND_LIST=HP_ANISO
+///  - MESH_REGULARITY=-1
+///  - CONV_EXP=1.0
+///  - ERR_STOP=0.1
+///  - NDOF_STOP=60000
+///  - SLOPE = 60
 ///
 ///  Results for given parameters
-///  * Uniform orders: 4109 DOFs
-///  * Nonuniform orders: 3985 DOFs
+///  - DOFs: 4506
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
 const int INIT_REF_NUM = 2;       // Number of initial uniform mesh refinements.
@@ -31,12 +31,10 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const RefinementSelectors::AllowedCandidates ADAPT_TYPE = RefinementSelectors::H2DRS_CAND_HP;         // Type of automatic adaptivity.
-const bool ISO_ONLY = false;      // Isotropic refinement flag (concerns quadrilateral elements only).
-                                  // ISO_ONLY = false ... anisotropic refinement of quad elements
-                                  // is allowed (default),
-                                  // ISO_ONLY = true ... only isotropic refinements of quad elements
-                                  // are allowed.
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -138,9 +136,6 @@ int main(int argc, char* argv[])
   // matrix solver
   UmfpackSolver solver;
 
-  // prepare selector
-  RefinementSelectors::H1NonUniformHP selector(ISO_ONLY, ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
-
   // convergence graph wrt. the number of degrees of freedom
   GnuplotGraph graph;
   graph.set_log_y();
@@ -155,8 +150,12 @@ int main(int argc, char* argv[])
   graph_cpu.add_row("error estimate", "k", "--");
   graph_cpu.set_log_y();
 
+  // create a selector which will select optimal candidate
+  H1ProjBasedSelector selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
+
   // adaptivity loop
-  int it = 1, ndofs;
+  int it = 1;
+  int ndof;
   bool done = false;
   TimePeriod cpu_time;
   Solution sln_coarse, sln_fine;
@@ -217,8 +216,8 @@ int main(int argc, char* argv[])
     if (err_est < ERR_STOP) done = true;
     else {
       hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
-      ndofs = space.assign_dofs();
-      if (ndofs >= NDOF_STOP) done = true;
+      ndof = assign_dofs(&space);
+      if (ndof >= NDOF_STOP) done = true;
     }
 
     // time measurement
@@ -230,9 +229,9 @@ int main(int argc, char* argv[])
 #define ERROR_SUCCESS                               0
 #define ERROR_FAILURE                               -1
   int n_dof_allowed = 4000;
-  printf("n_dof_actual = %d\n", ndofs);
+  printf("n_dof_actual = %d\n", ndof);
   printf("n_dof_allowed = %d\n", n_dof_allowed);
-  if (ndofs <= n_dof_allowed) {
+  if (ndof <= n_dof_allowed) {
     printf("Success!\n");
     return ERROR_SUCCESS;
   }

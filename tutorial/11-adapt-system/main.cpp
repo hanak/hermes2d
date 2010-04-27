@@ -57,7 +57,10 @@ const int STRATEGY = 1;          // Adaptive strategy:
                                  // STRATEGY = 2 ... refine all elements whose error is larger
                                  //   than THRESHOLD.
                                  // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-CandList CAND_LIST = H2D_HP_ANISO;        // Type of automatic adaptivity:
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
 const int MESH_REGULARITY = -1;  // Maximum allowed level of hanging nodes:
                                  // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                  // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -218,12 +221,12 @@ int main(int argc, char* argv[])
     rs.solve(2, &u_sln_fine, &v_sln_fine);
 
     // calculate element errors and total error estimate
-    H1OrthoHP hp(2, &uspace, &vspace);
+    H1Adapt hp(Tuple<Space*>(&uspace, &vspace));
     hp.set_biform(0, 0, bilinear_form_0_0<scalar, scalar>, bilinear_form_0_0<Ord, Ord>);
     hp.set_biform(0, 1, bilinear_form_0_1<scalar, scalar>, bilinear_form_0_1<Ord, Ord>);
     hp.set_biform(1, 0, bilinear_form_1_0<scalar, scalar>, bilinear_form_1_0<Ord, Ord>);
     hp.set_biform(1, 1, bilinear_form_1_1<scalar, scalar>, bilinear_form_1_1<Ord, Ord>);
-    double err_est = hp.calc_error_2(&u_sln_coarse, &v_sln_coarse, &u_sln_fine, &v_sln_fine) * 100;
+    double err_est = hp.calc_error(Tuple<Solution*>(&u_sln_coarse, &v_sln_coarse), Tuple<Solution*>(&u_sln_fine, &v_sln_fine)) * 100;
 
     // time measurement
     cpu_time.tick();
@@ -239,14 +242,6 @@ int main(int argc, char* argv[])
     info("Exact solution error for u (H1 norm): %g%%", u_error);
     info("Exact solution error for v (H1 norm): %g%%", v_error);
     info("Exact solution error (maximum): %g%%", error);
-
-    // calculate element errors and total error estimate
-    H1Adapt hp(Tuple<Space*>(&uspace, &vspace));
-    hp.set_biform(0, 0, bilinear_form_0_0<scalar, scalar>, bilinear_form_0_0<Ord, Ord>);
-    hp.set_biform(0, 1, bilinear_form_0_1<scalar, scalar>, bilinear_form_0_1<Ord, Ord>);
-    hp.set_biform(1, 0, bilinear_form_1_0<scalar, scalar>, bilinear_form_1_0<Ord, Ord>);
-    hp.set_biform(1, 1, bilinear_form_1_1<scalar, scalar>, bilinear_form_1_1<Ord, Ord>);
-    double err_est = hp.calc_error(Tuple<Solution*>(&u_sln_coarse, &v_sln_coarse), Tuple<Solution*>(&u_sln_fine, &v_sln_fine)) * 100;
     info("Estimate of error wrt. ref. solution (energy norm): %g%%", err_est);
 
     // add entry to DOF convergence graph
@@ -267,7 +262,7 @@ int main(int argc, char* argv[])
     else {
       hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY, MULTI == true ? false : true);
       ndof = assign_dofs(2, &uspace, &vspace);
-      if (ndofs >= NDOF_STOP) done = true;
+      if (ndof >= NDOF_STOP) done = true;
     }
 
     //time measurement

@@ -87,6 +87,9 @@ namespace RefinementSelectors {
       ref_value[H2D_FN_VALUE] = sub_gip.rvals[H2D_FN_VALUE][gip_inx];
       ref_value[H2D_FN_DX] = sub_trf.coef_mx * sub_gip.rvals[H2D_FN_DX][gip_inx];
       ref_value[H2D_FN_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_FN_DY][gip_inx];
+      //ref_value[H2D_FN_VALUE] = 1; //DEBUG
+      //ref_value[H2D_FN_DX] = 0; //DEBUG
+      //ref_value[H2D_FN_DY] = 0; //DEBUG
 
       //evaluate a right-hand value
       scalar value = (shape_value[H2D_FN_VALUE] * ref_value[H2D_FN_VALUE])

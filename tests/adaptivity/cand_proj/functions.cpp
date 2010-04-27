@@ -4,7 +4,8 @@
 using namespace RefinementSelectors;
 
 TestCase::TestCase(int func_quad_order)
-  : m_func_quad_order(func_quad_order), m_start_quad_order(make_quad_order(get_h_order(func_quad_order)-1, get_v_order(func_quad_order)-1)) {
+  : m_func_quad_order(func_quad_order)
+  , m_start_quad_order(make_quad_order(std::max(0, get_h_order(func_quad_order)-1), std::max(0, get_v_order(func_quad_order)-1))) {
   //create and fill poly matrix
   const int order_h = get_h_order(func_quad_order), order_v = get_v_order(func_quad_order);
   m_poly_matrix = new_matrix<double>(order_v + 1, order_h + 1);
@@ -14,6 +15,12 @@ TestCase::TestCase(int func_quad_order)
       if (rnd_val == 0)
         rnd_val = 1;
       m_poly_matrix[i][k] = (rnd_val * 2.0) / RAND_MAX;
+      ////DEBUG-BEGIN
+      //if (k == 0)
+      //  m_poly_matrix[i][k] = 1;
+      //else
+      //  m_poly_matrix[i][k] = 0;
+      ////DEBUG-END
     }
   }
 }

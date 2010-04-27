@@ -1,6 +1,8 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
 
+using namespace RefinementSelectors;
+
 // This is a test for Nernst-Planck examle
 
 #define SIDE_MARKER 1
@@ -52,10 +54,10 @@ const int STRATEGY = 0;                 // Adaptive strategy:
                                         // STRATEGY = 2 ... refine all elements whose error is larger
                                         //   than THRESHOLD.
                                         // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const int ADAPT_TYPE = 0;               // Type of automatic adaptivity:
-                                        // ADAPT_TYPE = 0 ... adaptive hp-FEM (default),
-                                        // ADAPT_TYPE = 1 ... adaptive h-FEM,
-                                        // ADAPT_TYPE = 2 ... adaptive p-FEM.
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
 
 const int NDOF_STOP = 5000;		          // To prevent adaptivity from going on forever.
 const double ERR_STOP = 0.5;            // Stopping criterion for adaptivity (rel. error tolerance between the
@@ -129,7 +131,10 @@ bool solveNonadaptive(Mesh &mesh, NonlinSystem &nls,
 }
 
 bool solveAdaptive(Mesh &Cmesh, Mesh &phimesh, Mesh &basemesh, NonlinSystem &nls, H1Space &C, H1Space &phi,
-    Solution &Cp, Solution &Ci, Solution &phip, Solution &phii) {
+                   Solution &Cp, Solution &Ci, Solution &phip, Solution &phii, H1Shapeset& shapeset) {
+
+  // create a selector which will select optimal candidate
+  H1ProjBasedSelector selector(CAND_LIST, 1.0, H2DRS_DEFAULT_ORDER, &shapeset);
 
   Solution Csln_coarse, phisln_coarse, Csln_fine, phisln_fine;
   int at_index = 1; //for saving screenshot
@@ -194,15 +199,15 @@ bool solveAdaptive(Mesh &Cmesh, Mesh &phimesh, Mesh &basemesh, NonlinSystem &nls
       } while (res_l2_norm > NEWTON_TOL_REF);
 
       // Calculate element errors and total estimate
-      H1OrthoHP hp(2, &C, &phi);
-      info("\n Calculating element errors\n");
-      err = hp.calc_error_2(&Csln_coarse, &phisln_coarse, &Csln_fine, &phisln_fine) * 100;
-      info("Error: %g", err);
+      H1Adapt hp(Tuple<Space*>(&C, &phi));
+      info("Calculating element errors");
+      err = hp.calc_error(Tuple<Solution*>(&Csln_coarse, &phisln_coarse), Tuple<Solution*>(&Csln_fine, &phisln_fine)) * 100;
+      info("Error: %g%%", err);
 
       if (err < ERR_STOP) {
         done = true;
       } else {
-        hp.adapt(THRESHOLD, STRATEGY, ADAPT_TYPE);
+        hp.adapt(&selector, THRESHOLD, STRATEGY);
       }
 
       int ndofs;
@@ -269,7 +274,6 @@ int main (int argc, char* argv[]) {
 	C.set_uniform_order(P_INIT);
 	phi.set_uniform_order(P_INIT);
 
-
 	// assign degrees of freedom
 	int ndofs = 0;
 	ndofs += C.assign_dofs(ndofs);
@@ -325,7 +329,7 @@ int main (int argc, char* argv[]) {
 
 	nls.set_ic(&Ci, &phii, &Ci, &phii);
 
-	bool success = solveAdaptive(Cmesh, phimesh, basemesh, nls, C, phi, Cp, Ci, phip, phii);
+  bool success = solveAdaptive(Cmesh, phimesh, basemesh, nls, C, phi, Cp, Ci, phip, phii, shapeset);
 	//bool success = solveNonadaptive(Cmesh, nls, Cp, Ci, phip, phii);
 
 	if (success) {

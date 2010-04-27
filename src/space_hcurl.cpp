@@ -56,7 +56,17 @@ Space* HcurlSpace::dup(Mesh* mesh) const
   return space;
 }
 
+void HcurlSpace::set_element_order(int id, int order)
+{
+  assert_msg(mesh->get_element(id)->is_quad() || get_v_order(order) == 0, "Element #%d is triangle but vertical is not zero", id);
+  if (id < 0 || id >= mesh->get_max_element_id())
+    error("Invalid element id.");
+  check_order(order);
 
+  resize_tables();
+  edata[id].order = order;
+  seq++;
+}
 
 //// dof assignment ////////////////////////////////////////////////////////////////////////////////
 

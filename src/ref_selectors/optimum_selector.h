@@ -49,7 +49,8 @@ namespace RefinementSelectors {
     H2D_HP_ANISO ///< H-, ANISO- and P-candidates. Orders are modified non-uniformly.
   };
 
-  extern H2D_API bool is_hp(const CandList cand_list); ///< Returns true if candidates will be HP in a case of predefined list.
+  extern H2D_API bool is_hp(const CandList cand_list); ///< Returns true if the candidate list contain candidates that are HP.
+  extern H2D_API bool is_p_aniso(const CandList cand_list); ///< Returns true if the candidate list contain candidates with anisotropic change of orders.
 
   template<typename T>
   class Range { ///< Range of values.

@@ -254,70 +254,89 @@ int test(bool tri) {
   H1ProjBasedSelector selector(H2D_HP_ANISO, 1.0, H2DRS_DEFAULT_ORDER, shapeset);
 
   //prepare cases
-  const int min_quad_order = H2D_MAKE_QUAD_ORDER(2, 2);
-  OrderPermutator order_perm(H2D_MAKE_QUAD_ORDER(0, 0), H2D_MAKE_QUAD_ORDER(H2DRS_MAX_ORDER, H2DRS_MAX_ORDER), tri);
+  int min_quad_order = -1, max_quad_order = -1;
+  if (tri) {
+    min_quad_order = H2D_MAKE_QUAD_ORDER(2, 0);
+    max_quad_order = H2D_MAKE_QUAD_ORDER(H2DRS_MAX_ORDER, 0);
+    //min_quad_order = H2D_MAKE_QUAD_ORDER(4, 0); //DEBUG
+    //max_quad_order = H2D_MAKE_QUAD_ORDER(5, 0); //DEBUG
+  }
+  else {
+    min_quad_order = H2D_MAKE_QUAD_ORDER(2, 2);
+    max_quad_order = H2D_MAKE_QUAD_ORDER(H2DRS_MAX_ORDER, H2DRS_MAX_ORDER);
+  }
+  OrderPermutator order_perm(min_quad_order, max_quad_order, false);
 
   //prepare place for result summary
-  int** fail_matrix = new_matrix<int>(H2D_GET_V_ORDER(order_perm.get_end_quad_order())+1, H2D_GET_H_ORDER(order_perm.get_end_quad_order())+1);
+  int end_order_v = H2D_GET_V_ORDER(order_perm.get_end_quad_order());
+  int end_order_h = H2D_GET_H_ORDER(order_perm.get_end_quad_order());
+  int** fail_matrix = new_matrix<int>(end_order_v+1, end_order_h+1);
+  for(int i = 0; i <= end_order_v; i++)
+    for(int k = 0; k <= end_order_h; k++)
+      fail_matrix[i][k] = H2D_TEST_NOT_DONE;
 
   //process cases
   do {
-    int test_result;
-    if (order_perm.get_order_h() >= H2D_GET_H_ORDER(min_quad_order) && order_perm.get_order_v() >= H2D_GET_V_ORDER(min_quad_order)) {
-      test_result = H2D_TEST_SUCCESS;
+    int test_result = H2D_TEST_SUCCESS;
 
-      //prepare test case
-      TestCase test_case(order_perm.get_quad_order());
-      cur_test_case = &test_case;
-      verbose("!test case: %s", test_case.title().c_str());
+    //prepare test case
+    TestCase test_case(order_perm.get_quad_order());
+    cur_test_case = &test_case;
+    verbose("!test case: %s", test_case.title().c_str());
 
-      //process
-      space->set_element_order(H2D_TEST_ELEM_ID, test_case.start_quad_order());
-      int ndofs = space->assign_dofs();
+    //process
+    space->set_element_order(H2D_TEST_ELEM_ID, test_case.start_quad_order());
+    int ndofs = space->assign_dofs();
+    space->assign_dofs();
 
-      //create and solve the reference system
-      Solution sln, rsln;
-      LinSystem ls(weakform, solver);
-      ls.set_spaces(1, space);
-      ls.set_pss(1, pss);
-      ls.assemble();
-      ls.solve(1, &sln);
-      RefSystem rs(&ls);
-      rs.assemble();
-      rs.solve(1, &rsln);
+    //create and solve the reference system
+    Solution sln, rsln;
+    LinSystem ls(weakform, solver);
+    ls.set_spaces(1, space);
+    ls.set_pss(1, pss);
+    ls.assemble();
+    ls.solve(1, &sln);
+    RefSystem rs(&ls);
+    rs.assemble();
+    rs.solve(1, &rsln);
 
-      //check projected functions
-      if (test_ref_solution(rsln))
-        test_result |= H2D_RSLN_FAILED;
+    ////DEBUG-BEGIN: display
+    //ScalarView view;
+    //ExactSolution esln(mesh, exact_func);
+    //DiffFilter diff_filter(&sln, &esln);
+    //view.show(&diff_filter);
+    //View::wait(H2DV_WAIT_KEYPRESS);
+    ////DEBUG-END
 
-      //select candidate
-      ElementToRefine refinement;
-      Element* e = mesh->get_element(H2D_TEST_ELEM_ID);
-      int order = space->get_element_order(H2D_TEST_ELEM_ID);
-      selector.select_refinement(e, order, &rsln, refinement);
+    //check projected functions
+    if (test_ref_solution(rsln))
+      test_result |= H2D_RSLN_FAILED;
 
-      //check candidates
-      verbose("Testing candidates");
-      const std::vector<OptimumSelector::Cand>& candidates = selector.get_candidates();
-      std::vector<OptimumSelector::Cand>::const_iterator cand = candidates.begin();
-      while (cand != candidates.end()) {
-        if (cur_test_case->should_match(*cand) && abs(cand->error) > H2D_TEST_ZERO) {
-          std::stringstream str;
-          str << *cand;
-          verbose(" Invalid candidate: %s", str.str().c_str());
-          test_result |= H2D_CAND_FAILED;
-        }
-        cand++;
+    //select candidate
+    ElementToRefine refinement;
+    Element* e = mesh->get_element(H2D_TEST_ELEM_ID);
+    int order = space->get_element_order(H2D_TEST_ELEM_ID);
+    selector.select_refinement(e, order, &rsln, refinement);
+
+    //check candidates
+    verbose("Testing candidates");
+    const std::vector<OptimumSelector::Cand>& candidates = selector.get_candidates();
+    std::vector<OptimumSelector::Cand>::const_iterator cand = candidates.begin();
+    while (cand != candidates.end()) {
+      if (cur_test_case->should_match(*cand) && abs(cand->error) > H2D_TEST_ZERO) {
+        std::stringstream str;
+        str << *cand;
+        verbose(" Invalid candidate: %s", str.str().c_str());
+        test_result |= H2D_CAND_FAILED;
       }
-      if (test_result == H2D_TEST_SUCCESS)
-        verbose("Test success");
-      else {
-        verbose("Test failed!");
-        failed = true;
-      }
+      cand++;
     }
-    else
-      test_result = H2D_TEST_NOT_DONE;
+    if (test_result == H2D_TEST_SUCCESS)
+      verbose("Test success");
+    else {
+      verbose("Test failed!");
+      failed = true;
+    }
     fail_matrix[order_perm.get_order_v()][order_perm.get_order_h()] = test_result;
   } while(order_perm.next());
 

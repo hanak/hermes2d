@@ -154,8 +154,10 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
         err0 = err;
         processed_error += err;
       }
-      else
+      else {
+        debug_log("Element (id:%d, comp:%d) not changed", e->id, comp);
         num_not_changed++;
+      }
     }
     else {
       num_ignored_elem++;

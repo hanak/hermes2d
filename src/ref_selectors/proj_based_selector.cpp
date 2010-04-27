@@ -12,9 +12,10 @@ namespace RefinementSelectors {
     , rhs_cache(NULL)
   {
     //clear matrix cache
-    for(int i = 0; i < H2DRS_MAX_ORDER+1; i++)
-      for(int k = 0; k < H2DRS_MAX_ORDER+1; k++)
-        proj_matrices[i][k] = NULL;
+    for(int m = 0; m < H2D_NUM_MODES; m++)
+      for(int i = 0; i < H2DRS_MAX_ORDER+1; i++)
+        for(int k = 0; k < H2DRS_MAX_ORDER+1; k++)
+          proj_matrix_cache[m][i][k] = NULL;
 
     //allocate cache
     int max_inx = max_shape_inx[0];
@@ -25,12 +26,12 @@ namespace RefinementSelectors {
 
   ProjBasedSelector::~ProjBasedSelector() {
     delete[] rhs_cache;
-    for(int i = 0; i < H2DRS_MAX_ORDER+1; i++) {
-      for(int k = 0; k < H2DRS_MAX_ORDER+1; k++) {
-        if (proj_matrices[i][k] != NULL)
-          delete[] proj_matrices[i][k];
-      }
-    }
+    for(int m = 0; m < H2D_NUM_MODES; m++)
+      for(int i = 0; i < H2DRS_MAX_ORDER+1; i++)
+        for(int k = 0; k < H2DRS_MAX_ORDER+1; k++) {
+          if (proj_matrix_cache[m][i][k] != NULL)
+            delete[] proj_matrix_cache[m][i][k];
+        }
   }
 
   void ProjBasedSelector::evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error) {
@@ -209,6 +210,7 @@ namespace RefinementSelectors {
     int* indx = new int[max_num_shapes]; //solver data
     double* d = new double[max_num_shapes]; //solver data
     double** proj_matrix = new_matrix<double>(max_num_shapes, max_num_shapes);
+    ProjMatrixCache& proj_matrices = proj_matrix_cache[mode];
     std::vector<ShapeInx>& full_shape_indices = shape_indices[mode];
 
     //clenup of the cache

@@ -43,33 +43,18 @@ const int STRATEGY = 1;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const CandList CAND_LIST = H2D_HP_ANISO;  // Predefined list of candidates which will be used. Possible values are:
-                                  // H2D_P_ISO: Generates P-candidates only and modifies orders.
-                                  //     In a case of quads, the horizontal order of a candidate
-                                  //     is modified similar to the vertical order and vice versa.
-                                  // H2D_P_ANISO: Generates P-candidates only and and modifies orders.
-                                  //     In a case of quads, the horizontal order of a candidate is
-                                  //     modified independently on the vertical order and vice versa.
-                                  // H2D_H_ISO: Generates H-candidates only and does not modify orders.
-                                  // H2D_H_ANISO: Generates H- and ANISO-candidates and does not modify orders.
-                                  // H2D_HP_ISO: Generates H- and P-candidates only and modifies orders.
-                                  //     In a case of quads, the horizontal order of a candidate is
-                                  //     modified similar to the vertical order and vice versa.
-                                  // H2D_HP_ANISO_H: Generates H-, ANISO- and P-candidates and modifies orders.
-                                  //     In a case of quads, the horizontal order of a candidate is
-                                  //     modified similar to the vertical order and vice versa.
-                                  // H2D_HP_ANISO_P: Generates H- and P-candidates and modifies orders.
-                                  //     In a case of quads, the horizontal order of a candidate is
-                                  //     modified independently on the vertical order and vice versa.
-                                  // H2D_HP_ANISO: Generates H- and P-candidates and modifies orders.
-                                  //     In a case of quads, the horizontal order of a candidate is
-                                  //     modified independently on the vertical order and vice versa.
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
                                   // MESH_REGULARITY = 2 ... at most two-level hanging nodes, etc.
                                   // Note that regular meshes are not supported, this is due to
                                   // their notoriously bad performance.
+const double CONV_EXP = 1.0;      // Default value is 1.0. This parameter influences the selection of
+                                  // cancidates in hp-adaptivity. See get_optimal_refinement() for details.
 const double ERR_STOP = 0.1;      // Stopping criterion for adaptivity (rel. error tolerance between the
                                   // fine mesh and coarse mesh solution in percent).
 const int NDOF_STOP = 50000;      // Adaptivity process stops when the number of degrees of freedom grows
@@ -145,8 +130,8 @@ int main(int argc, char* argv[])
   // matrix solver
   UmfpackSolver solver;
 
-  // refinement selector  
-  RefinementSelectors::HcurlProjBasedSelector ref_selector(CAND_LIST, 0.5, H2DRS_DEFAULT_ORDER, &shapeset);
+  // create a selector which will select optimal candidate
+  HcurlProjBasedSelector selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // DOF and CPU convergence graphs
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;
@@ -232,7 +217,7 @@ int main(int argc, char* argv[])
     // if err_est_adapt too large, adapt the mesh
     if (err_est_adapt < ERR_STOP) done = true;
     else {
-      hp.adapt(&ref_selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
+      hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndof = assign_dofs(&space);
       if (ndof >= NDOF_STOP) done = true;
     }

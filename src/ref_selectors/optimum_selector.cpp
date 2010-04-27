@@ -39,6 +39,20 @@ namespace RefinementSelectors {
     }
   }
 
+  HERMES2D_API bool is_p_aniso(const CandList cand_list) {
+    switch(cand_list) {
+      case H2D_P_ISO: return false;
+      case H2D_P_ANISO: return true;
+      case H2D_H_ISO: return false;
+      case H2D_H_ANISO: return false;
+      case H2D_HP_ISO: return false;
+      case H2D_HP_ANISO_H: return false;
+      case H2D_HP_ANISO_P: return true;
+      case H2D_HP_ANISO: return true;
+      default: error("invalid adapt type %d", cand_list); return false;
+    }
+  }
+
   OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order)
     : start_order_h(H2D_GET_H_ORDER(start_quad_order)), start_order_v(H2D_GET_V_ORDER(start_quad_order))
     , end_order_h(H2D_GET_H_ORDER(end_quad_order)), end_order_v(H2D_GET_V_ORDER(end_quad_order))
@@ -48,24 +62,26 @@ namespace RefinementSelectors {
   }
 
   bool OrderPermutator::next() {
-    if (order_h >= end_order_h && order_v >= end_order_v)
-      return false;
-    else {
-      if (iso_p) {
-        order_h++; order_v++;
-      }
-      else {
-        order_h++;
-        if (order_h > end_order_h) {
-          order_h = start_order_h;
-          order_v++;
-        }
-      }
+    if (iso_p) {
+      if (order_h >= end_order_h || order_v >= end_order_v)
+        return false;
 
-      if (tgt_quad_order != NULL)
-        *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
-      return true;
+      order_h++; order_v++;
     }
+    else {
+      if (order_h >= end_order_h && order_v >= end_order_v)
+        return false;
+
+      order_h++;
+      if (order_h > end_order_h) {
+        order_h = start_order_h;
+        order_v++;
+      }
+    }
+
+    if (tgt_quad_order != NULL)
+      *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
+    return true;
   }
 
   void OrderPermutator::reset() {
@@ -285,7 +301,7 @@ namespace RefinementSelectors {
     switch(cand_list) {
       case H2D_H_ISO:
       case H2D_H_ANISO:
-        last_quad_order = start_quad_order; break; //no only one candidate will be created
+        last_quad_order = start_quad_order = quad_order; break; //no only one candidate will be created
 
       case H2D_P_ISO:
       case H2D_P_ANISO:
@@ -298,7 +314,7 @@ namespace RefinementSelectors {
     append_candidates_split(start_quad_order, last_quad_order, H2D_REFINEMENT_H, tri || iso_p);
 
     //generate all ANISO-candidates
-    if (!tri && e->iro_cache < 8 //TODO: find out what iro_cache does and why 8
+    if (!tri && e->iro_cache < 8 //TODO: find out what iro_cache is and why 8
       && (cand_list == H2D_H_ANISO || cand_list == H2D_HP_ANISO_H || cand_list == H2D_HP_ANISO)) {
       iso_p = false;
       int start_quad_order_hz = H2D_MAKE_QUAD_ORDER(order_h, std::max(current_min_order, (order_v+1) / 2));
@@ -307,8 +323,8 @@ namespace RefinementSelectors {
       int last_quad_order_vt = H2D_MAKE_QUAD_ORDER(std::min(order_h, H2D_GET_H_ORDER(start_quad_order)+H2DRS_MAX_ORDER_INC), std::min(max_ha_order_v, order_v+H2DRS_MAX_ORDER_INC));
       switch(cand_list) {
         case H2D_H_ANISO:
-          last_quad_order_hz = start_quad_order_hz;
-          last_quad_order_vt = start_quad_order_vt;
+          last_quad_order_hz = start_quad_order_hz = quad_order;
+          last_quad_order_vt = start_quad_order_vt = quad_order;
           break; //only one candidate will be created
 
         case H2D_HP_ANISO_H:
@@ -342,7 +358,7 @@ namespace RefinementSelectors {
       //evaluate sons of candidates
       const int num_sons = cand->get_num_sons();
       for(int i = 0; i < num_sons; i++) {
-        int son_order_h = H2D_GET_H_ORDER(cand->p[i]), son_order_v = H2D_GET_H_ORDER(cand->p[i]);
+        int son_order_h = H2D_GET_H_ORDER(cand->p[i]), son_order_v = H2D_GET_V_ORDER(cand->p[i]);
         if (son_order_h != son_order_v)
           info->uniform_orders = false;
         if (info->min_quad_order < 0 || info->max_quad_order < 0)
@@ -367,7 +383,7 @@ namespace RefinementSelectors {
         switch(c.split) {
         case H2D_REFINEMENT_H:
           {
-            int central = 1;
+            const int central = 3; //central triangle
             c.dofs = 0;
             for(int j = 0; j < H2D_MAX_ELEMENT_SONS; j++) {
               c.dofs += calc_num_shapes(MODE_TRIANGLE, H2D_GET_H_ORDER(c.p[j]), H2DRS_ORDER_ANY, H2DST_ANY);
@@ -375,7 +391,7 @@ namespace RefinementSelectors {
                 c.dofs -= calc_num_shapes(MODE_TRIANGLE, std::min(H2D_GET_H_ORDER(c.p[j]), H2D_GET_H_ORDER(c.p[central])), H2DRS_ORDER_ANY, H2DST_TRI_EDGE) / 3; //shared edge: since triangle has three edges which are identified by a single order this will find 3 x different edge of a given order
             }
             if (has_vertex_shape[MODE_TRIANGLE])
-              c.dofs -= 2*3; //every vertex functions is added 3-times
+              c.dofs -= 3*3; //every vertex functions of vertices which create the middle triangle is added 3-times
           }
           break;
 
@@ -384,7 +400,7 @@ namespace RefinementSelectors {
           break;
 
         default:
-          error("Unknown split type \"%d\" at candidate %d", c.split, i);
+          error("Unknown split type \"%d\" at candidate %d (element #%d)", c.split, i, e->id);
         }
       }
       else { //quad

@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   ScalarView view1("Solution 1");
   view1.show(&sln);
 
-  // wait for keyboard or mouse input
+  // wait for all views to be closed
   View::wait();
   return 0;
 }

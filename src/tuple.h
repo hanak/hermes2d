@@ -22,14 +22,14 @@
 template<typename T>
 class Tuple: public std::vector<T> {
 public:
-  template<typename ForwardIterator>
-  Tuple(ForwardIterator first, ForwardIterator last) {
-    reserve(last - first);
-    while(first != last) {
-      push_back(*first);
-    }
-  };
-
+  //template<typename ForwardIterator>
+  //Tuple(ForwardIterator first, ForwardIterator last) {
+  //  reserve(last - first);
+  //  while(first != last) {
+  //    push_back(*first);
+  //    first++;
+  //  }
+  //};
   Tuple(const T& a) { push_back(a); };
   Tuple(const T& a, const T& b) { push_back(a); push_back(b); };
   Tuple(const T& a, const T& b, const T& c) { push_back(a); push_back(b); push_back(c); };

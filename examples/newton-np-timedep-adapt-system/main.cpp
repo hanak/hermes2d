@@ -109,11 +109,18 @@ const int STRATEGY = 0;               // Adaptive strategy:
                                       // STRATEGY = 2 ... refine all elements whose error is larger
                                       //   than THRESHOLD.
                                       // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const int ADAPT_TYPE = 0;             // Type of automatic adaptivity:
-                                      // ADAPT_TYPE = 0 ... adaptive hp-FEM (default),
-                                      // ADAPT_TYPE = 1 ... adaptive h-FEM,
-                                      // ADAPT_TYPE = 2 ... adaptive p-FEM.
-
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
+const int MESH_REGULARITY = -1;  // Maximum allowed level of hanging nodes:
+                                 // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
+                                 // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
+                                 // MESH_REGULARITY = 2 ... at most two-level hanging nodes, etc.
+                                 // Note that regular meshes are not supported, this is due to
+                                 // their notoriously bad performance.
+const double CONV_EXP = 1.0;     // Default value is 1.0. This parameter influences the selection of
+                                 // cancidates in hp-adaptivity. See get_optimal_refinement() for details.
 const int NDOF_STOP = 5000;		        // To prevent adaptivity from going on forever.
 const double ERR_STOP = 0.1;          // Stopping criterion for adaptivity (rel. error tolerance between the
                                       // fine mesh and coarse mesh solution in percent).
@@ -191,7 +198,7 @@ void solveNonadaptive(Mesh &mesh, NonlinSystem &nls,
 /** Adaptive solver.*/
 void solveAdaptive(Mesh &Cmesh, Mesh &phimesh, Mesh &basemesh, NonlinSystem &nls,
      H1Space &Cspace, H1Space &phispace, Solution &C_prev_time, Solution &C_prev_newton,
-     Solution &phi_prev_time, Solution &phi_prev_newton) {
+     Solution &phi_prev_time, Solution &phi_prev_newton, H1Shapeset& shapeset) {
 
   char title[100];
   //VectorView vview("electric field [V/m]", 0, 0, 600, 600);
@@ -210,6 +217,8 @@ void solveAdaptive(Mesh &Cmesh, Mesh &phimesh, Mesh &basemesh, NonlinSystem &nls
   graph_dof.set_captions("", "Timestep", "DOF");
   graph_dof.add_row(MULTIMESH ? "multi-mesh" : "single-mesh", "k", "-", "o");
 
+  // create a selector which will select optimal candidate
+  H1ProjBasedSelector selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   phiview.set_title(title);
   Cview.set_title(title);
@@ -280,15 +289,15 @@ void solveAdaptive(Mesh &Cmesh, Mesh &phimesh, Mesh &basemesh, NonlinSystem &nls
       Cview.show(&mag2); 
 
       // Calculate element errors and total estimate
-      H1OrthoHP hp(2, &Cspace, &phispace);
+      H1Adapt hp(Tuple<Space*>(&Cspace, &phispace));
       info("\n Calculating element errors\n");
-      err = hp.calc_error_2(&Csln_coarse, &phisln_coarse, &Csln_fine, &phisln_fine) * 100;
+      err = hp.calc_error(Tuple<Solution*>(&Csln_coarse, &phisln_coarse), Tuple<Solution*>(&Csln_fine, &phisln_fine)) * 100;
       info("Error: %g%%", err);
 
       if (err < ERR_STOP) {
         done = true;
       } else {
-        hp.adapt(THRESHOLD, STRATEGY, ADAPT_TYPE);
+        hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
         // enumerate degrees of freedom
         ndof = assign_dofs(2, &Cspace, &phispace);
 
@@ -468,7 +477,7 @@ int main (int argc, char* argv[]) {
 
   if (adaptive) {
     solveAdaptive(Cmesh, phimesh, basemesh, nls, C, phi, C_prev_time,
-        C_prev_newton, phi_prev_time, phi_prev_newton);
+        C_prev_newton, phi_prev_time, phi_prev_newton, shapeset);
   } else {
     solveNonadaptive(Cmesh, nls, C_prev_time, C_prev_newton, phi_prev_time, phi_prev_newton);
   }

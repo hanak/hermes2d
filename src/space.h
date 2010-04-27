@@ -114,7 +114,7 @@ public:
   void set_bc_values(scalar (*bc_value_callback_by_edge)(EdgePos* ep)); // for EdgePos, see mesh.h
 
   /// Sets element polynomial order.
-  void set_element_order(int id, int order);
+  virtual void set_element_order(int id, int order);
   /// Returns element polynomial order.
   int  get_element_order(int id) const;
   /// Sets the same polynomial order for all elements in the mesh.

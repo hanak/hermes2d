@@ -35,6 +35,9 @@ public:
 
   virtual int get_type() const { return 1; }
 
+  /// Sets element polynomial order.
+  virtual void set_element_order(int id, int order);
+
 protected:
 
   virtual void assign_vertex_dofs() {}

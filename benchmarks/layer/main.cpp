@@ -37,7 +37,10 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const CandList CAND_LIST = H2D_HP_ANISO;  // Type of automatic adaptivity. Influences variability of candidates which are considered.
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -144,7 +147,7 @@ int main(int argc, char* argv[])
   // DOF and CPU convergence graphs
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;
 
-  // prepare selector
+  // create a selector which will select optimal candidate
   H1ProjBasedSelector selector(CAND_LIST, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // adaptivity loop
