@@ -148,7 +148,11 @@ public:
     if (index >= 0)
     {
       H2D_CHECK_INDEX; H2D_CHECK_COMPONENT;
-      return shape_table[n][mode][component][index](x, y);
+      Shapeset::shape_fn_t** shape_expansion = shape_table[n][mode];
+      if (shape_expansion == NULL) // given exansion (f, df/dx, df/dy, ddf/dxdx, ...) is not defined
+        return 0;
+      else
+        return shape_expansion[component][index](x, y);
     }
     else
       return get_constrained_value(n, index, x, y, component);

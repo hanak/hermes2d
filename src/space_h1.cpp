@@ -153,7 +153,7 @@ void H1Space::assign_vertex_dofs()
     shapeset->set_mode(e->get_mode());
     ElementData* ed = &edata[e->id];
     ed->bdof = next_dof;
-    ed->n = order ? shapeset->get_num_bubbles(ed->order) : 0;
+    ed->n = order ? shapeset->get_num_bubbles(ed->order) : 0; //FIXME: this function might return invalid value because retrieved bubble functions for non-uniform orders might be invalid for the given order.
     next_dof += ed->n * stride;
   }
 }
@@ -226,43 +226,6 @@ void H1Space::get_edge_assembly_list_internal(Element* e, int ie, AsmList* al)
     nd = &ndata[nd->base->id];
     for (int j = 0, dof = nd->dof; j < nd->n; j++, dof += stride)
       al->add_triplet(shapeset->get_constrained_edge_index(ie, j+2, ori, part), dof, 1.0);
-  }
-}
-
-
-void H1Space::get_bubble_assembly_list(Element* e, AsmList* al)
-{
-  ElementData* ed = &edata[e->id];
-  if (!ed->n) return;
-
-  //HACK: even though order 2/3 is requested, it returns bubble 3/2
-  int order_h = H2D_GET_H_ORDER(ed->order), order_v = H2D_GET_V_ORDER(ed->order);
-  int request_quad_order = -1;
-  if (e->is_triangle()) {
-    request_quad_order = order_h;
-    order_v = order_h;
-  }
-  else {
-    int order = std::max(order_h, order_v);
-    request_quad_order = H2D_MAKE_QUAD_ORDER(order, order);
-  }
-
-  //gather indices
-  int* indices = shapeset->get_bubble_indices(request_quad_order);
-  int num_used = 0, inx = 0, dof = ed->bdof;
-  while (num_used < ed->n) {
-    assert_msg(inx < shapeset->get_num_bubbles(request_quad_order), "All provided bubble indices processed but still %d requested, element #%d", ed->n - num_used, e->id);
-
-    //check if bubble satisfies requested order
-    int bubble_quad_order = shapeset->get_order(indices[inx]);
-    if (order_h >= H2D_GET_H_ORDER(bubble_quad_order) && order_v >= H2D_GET_V_ORDER(bubble_quad_order)) {
-      al->add_triplet(indices[inx], dof, 1.0);
-      dof += stride;
-      num_used++;
-    }
-
-    //next bubble
-    inx++;
   }
 }
 

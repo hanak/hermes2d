@@ -36,7 +36,7 @@ using namespace RefinementSelectors;
 #define ERROR_SUCCESS 0 ///< Test return code if success.
 #define ERROR_FAILURE -1 ///< Test return code if fails.
 #define H2D_TEST_ELEM_ID 0 ///< ID of an alement which is going to be handled.
-#define H2D_TEST_ZERO 2e-12 ///< Numerical zero. Since polynoms are defined on a reference domain, some high-order polynoms might yield error a little bit higher than \f$10^{-12}\f$.
+#define H2D_TEST_ZERO 4e-12 ///< Numerical zero: quads. Since polynoms are defined on a reference domain, some high-order polynoms might yield error a little bit higher than \f$10^{-12}\f$ in H1. In L2, high-order polynomials yields an error higher than \f$3\times 10^{-12}\f$.
 #define delete_not_null(__ptr) if (__ptr != NULL) delete __ptr; ///< Deletes an instance if the pointer is not NULL.
 
 #define H2D_TEST_NOT_DONE -1 ///< Flag: Combination of orders was not tested.
@@ -46,28 +46,30 @@ using namespace RefinementSelectors;
 
 /* global variables */
 Mesh* mesh = NULL; ///< Mesh used by the test.
-H1Shapeset* shapeset = NULL; ///< Shapeset used by the test.
+Shapeset* shapeset = NULL; ///< Shapeset used by the test.
 PrecalcShapeset* pss = NULL; ///< Precalculated shapeset used by the test.
-H1Space* space = NULL; ///< Space used by the test.
+Space* space = NULL; ///< Space used by the test.
 WeakForm* weakform = NULL; ///< Weakform used by the test.
 UmfpackSolver* solver = NULL; ///< Solved used by the test.
+OptimumSelector* selector = NULL; ///< Selector used by the test.
+
 TestCase* cur_test_case = NULL; ///< Current test case: required by callbacks.
 
 /// Boundary condition types
 int bc_types(int marker) { return BC_NONE; }
 
-/// Bilinear form.
+/// Bilinear form: H1
 template<typename T, typename D>
 D h1_biform(int n, double *wt, Func<T> *u, Func<T> *v, Geom<T> *e, ExtData<D> *data) {
   return int_u_v<T, T>(n, wt, u, v) + int_grad_u_grad_v<T, T>(n, wt, u, v);
 }
 
-/// Linear form: order
+/// Linear form: order in H1
 Ord h1_liform(int point_cnt, double *weights, Func<Ord> *values_v, Geom<Ord> *geometry, ExtData<Ord> *values_fnc_ext) {
   return Ord(H2D_GET_H_ORDER(cur_test_case->quad_order()) + H2D_GET_V_ORDER(cur_test_case->quad_order()) + 2*values_v->val->get_order());
 }
 
-/// Linear form: value
+/// Linear form: value in H1
 scalar h1_liform(int point_cnt, double *weights, Func<double> *values_v, Geom<double> *geometry, ExtData<scalar> *values_fnc_ext) {
   scalar result = 0;
   for(int i = 0; i < point_cnt; i++) {
@@ -79,39 +81,76 @@ scalar h1_liform(int point_cnt, double *weights, Func<double> *values_v, Geom<do
   return result;
 }
 
+/// Bilinear form: L2
+template<typename T, typename D>
+D l2_biform(int n, double *wt, Func<T> *u, Func<T> *v, Geom<T> *e, ExtData<D> *data) {
+  return int_u_v<T, T>(n, wt, u, v);
+}
+
+/// Linear form: order in L2
+Ord l2_liform(int point_cnt, double *weights, Func<Ord> *values_v, Geom<Ord> *geometry, ExtData<Ord> *values_fnc_ext) {
+  return Ord(H2D_GET_H_ORDER(cur_test_case->quad_order()) + H2D_GET_V_ORDER(cur_test_case->quad_order()) + 2*values_v->val->get_order());
+}
+
+/// Linear form: value in L2
+scalar l2_liform(int point_cnt, double *weights, Func<double> *values_v, Geom<double> *geometry, ExtData<scalar> *values_fnc_ext) {
+  scalar result = 0;
+  for(int i = 0; i < point_cnt; i++) {
+    double x = geometry->x[i], y = geometry->y[i];
+    result += weights[i] * values_v->val[i] * func_val(cur_test_case->poly_matrix(), cur_test_case->quad_order(), x, y);
+  }
+  return result;
+}
+
 /// Function that is used to exact solution.
-scalar exact_func(double x, double y, scalar& dx, scalar& dy) {
+scalar h1_exact_func(double x, double y, scalar& dx, scalar& dy) {
   scalar value = func_val(cur_test_case->poly_matrix(), cur_test_case->quad_order(), x, y);
   dx = func_dx(cur_test_case->poly_matrix(), cur_test_case->quad_order(), x, y);
   dy = func_dy(cur_test_case->poly_matrix(), cur_test_case->quad_order(), x, y);
   return value;
 }
 
-/// Initialize internal data structures.
-bool init(bool tri) {
-  try {
-    // shapeset and cache
-    shapeset = new H1Shapeset();
-    pss = new PrecalcShapeset(shapeset);
+/// Cleanup
+void cleanup() {
+  delete_not_null(selector);
+  delete_not_null(solver);
+  delete_not_null(weakform);
+  delete_not_null(space);
+  delete_not_null(mesh);
+  delete_not_null(pss);
+  delete_not_null(shapeset);
+}
 
-    // mesh (1 element)
-    mesh = new Mesh();
-    if (tri) {
-      const int vertex_num = 3, tria_num = 1, quad_num = 0, marker_num = 3;
-      double2 vertex_array[3] = {{-1,-1}, { 1,-1}, {-1, 1}};
-      int4 tria_array[1] = {{0, 1, 2, 0}};
-      int5 *quad_array = NULL;
-      int3 marker_array[3] = {{0, 1, 2}, {1, 2, 1}, {2, 0, 3}};
-      mesh->create(vertex_num, vertex_array, tria_num, tria_array, quad_num, quad_array, marker_num, marker_array);
-    }
-    else {
-      const int vertex_num = 4, tria_num = 0, quad_num = 1, marker_num = 4;
-      double2 vertex_array[4] = {{-1,-1}, { 1,-1}, { 1, 1}, {-1, 1}};
-      int4 *tria_array = NULL;
-      int5 quad_array[1] = {{0, 1, 2, 3, 0}};
-      int3 marker_array[4] = {{0, 1, 3}, {1, 2, 2}, {2, 3, 4}, {3, 0, 1}};
-      mesh->create(vertex_num, vertex_array, tria_num, tria_array, quad_num, quad_array, marker_num, marker_array);
-    }
+/// Initialize mesh
+Mesh* init_mesh(bool tri) {
+  Mesh* mesh = new Mesh();
+  if (tri) {
+    const int vertex_num = 3, tria_num = 1, quad_num = 0, marker_num = 3;
+    double2 vertex_array[3] = {{-1,-1}, { 1,-1}, {-1, 1}};
+    int4 tria_array[1] = {{0, 1, 2, 0}};
+    int5 *quad_array = NULL;
+    int3 marker_array[3] = {{0, 1, 2}, {1, 2, 1}, {2, 0, 3}};
+    mesh->create(vertex_num, vertex_array, tria_num, tria_array, quad_num, quad_array, marker_num, marker_array);
+  }
+  else {
+    const int vertex_num = 4, tria_num = 0, quad_num = 1, marker_num = 4;
+    double2 vertex_array[4] = {{-1,-1}, { 1,-1}, { 1, 1}, {-1, 1}};
+    int4 *tria_array = NULL;
+    int5 quad_array[1] = {{0, 1, 2, 3, 0}};
+    int3 marker_array[4] = {{0, 1, 3}, {1, 2, 2}, {2, 3, 4}, {3, 0, 1}};
+    mesh->create(vertex_num, vertex_array, tria_num, tria_array, quad_num, quad_array, marker_num, marker_array);
+  }
+  return mesh;
+}
+
+/// Initialize internal data structures: H1 space.
+bool init_h1(bool tri) {
+  try {
+    // shapeset, cache and mesh
+    H1Shapeset* h1_shapeset = new H1Shapeset();
+    pss = new PrecalcShapeset(h1_shapeset);
+    mesh = init_mesh(tri);
+    shapeset = h1_shapeset;
 
     // finite element space
     space = new H1Space(mesh, shapeset);
@@ -127,6 +166,9 @@ bool init(bool tri) {
     //solver
     solver = new UmfpackSolver();
 
+    //prepare selector
+    selector = new H1ProjBasedSelector(H2D_HP_ANISO, 1.0, H2DRS_DEFAULT_ORDER, h1_shapeset);
+
     return true;
   }
   catch (std::exception& e) {
@@ -135,24 +177,48 @@ bool init(bool tri) {
   }
 }
 
-/// Cleanup
-void cleanup() {
-  delete_not_null(solver);
-  delete_not_null(weakform);
-  delete_not_null(space);
-  delete_not_null(mesh);
-  delete_not_null(pss);
-  delete_not_null(shapeset);
+/// Initialize internal data structures: L2 space.
+bool init_l2(bool tri) {
+  try {
+    // shapeset, cache and mesh
+    L2Shapeset* l2_shapeset = new L2Shapeset();
+    pss = new PrecalcShapeset(l2_shapeset);
+    mesh = init_mesh(tri);
+    shapeset = l2_shapeset;
+
+    // finite element space
+    space = new L2Space(mesh, shapeset);
+    space->set_bc_types(bc_types);
+    space->set_uniform_order(1);
+    space->assign_dofs();
+
+    // weakform
+    weakform = new WeakForm(1);
+    weakform->add_biform(0, 0, callback(l2_biform), SYM);
+    weakform->add_liform(0, l2_liform, l2_liform, H2D_ANY);
+
+    //solver
+    solver = new UmfpackSolver();
+
+    //prepare selector
+    selector = new L2ProjBasedSelector(H2D_HP_ANISO, 1.0, H2DRS_DEFAULT_ORDER, l2_shapeset);
+
+    return true;
+  }
+  catch (std::exception& e) {
+    info("failed: %s", e.what());
+    return false;
+  }
 }
 
 /// Prints failure matrix
-void show_fail_matrix(int** fail_matrix, const int max_quad_order) {
+void show_fail_matrix(int** fail_matrix, const std::string& space_name, const int max_quad_order) {
   const int max_order_h = H2D_GET_H_ORDER(max_quad_order), max_order_v = H2D_GET_V_ORDER(max_quad_order);
 #define NUMBER_W 2
 #define NUMBER_FMT "%02d"
   char buff_number[1024];
 
-  info("!Test summary (V/H)");
+  info("!Test summary (V/H): %s", space_name.c_str());
 
   //print header
   {
@@ -235,9 +301,9 @@ bool test_ref_solution(Solution& rsln) {
     //compare to test-case values
     const int num_pt = rsln.get_quad_2d()->get_num_points(check_gip_order);
     for(int i = 0; i < num_pt; i++) {
-      double func_value = func_val(cur_test_case->poly_matrix(), test_quad_order, phys_x[i], phys_y[i]);
+      scalar func_value = func_val(cur_test_case->poly_matrix(), test_quad_order, phys_x[i], phys_y[i]);
       if (abs(func_value - rsln_vals[i]) > H2D_TEST_ZERO) {
-        verbose(" Failed: rsln and function value differs");
+        verbose(" Failed: rsln and function value differs (%g)", abs(func_value - rsln_vals[i]));
         return true;
       }
     }
@@ -247,23 +313,18 @@ bool test_ref_solution(Solution& rsln) {
 }
 
 /// Test
-int test(bool tri) {
+bool test(bool tri, const std::string& space_name, int min_order, int max_order = H2DRS_MAX_ORDER) {
    bool failed = false;
-
-  //prepare selector
-  H1ProjBasedSelector selector(H2D_HP_ANISO, 1.0, H2DRS_DEFAULT_ORDER, shapeset);
 
   //prepare cases
   int min_quad_order = -1, max_quad_order = -1;
   if (tri) {
-    min_quad_order = H2D_MAKE_QUAD_ORDER(2, 0);
-    max_quad_order = H2D_MAKE_QUAD_ORDER(H2DRS_MAX_ORDER, 0);
-    //min_quad_order = H2D_MAKE_QUAD_ORDER(4, 0); //DEBUG
-    //max_quad_order = H2D_MAKE_QUAD_ORDER(5, 0); //DEBUG
+    min_quad_order = H2D_MAKE_QUAD_ORDER(min_order, 0);
+    max_quad_order = H2D_MAKE_QUAD_ORDER(max_order, 0);
   }
   else {
-    min_quad_order = H2D_MAKE_QUAD_ORDER(2, 2);
-    max_quad_order = H2D_MAKE_QUAD_ORDER(H2DRS_MAX_ORDER, H2DRS_MAX_ORDER);
+    min_quad_order = H2D_MAKE_QUAD_ORDER(min_order, min_order);
+    max_quad_order = H2D_MAKE_QUAD_ORDER(max_order, max_order);
   }
   OrderPermutator order_perm(min_quad_order, max_quad_order, false);
 
@@ -316,17 +377,17 @@ int test(bool tri) {
     ElementToRefine refinement;
     Element* e = mesh->get_element(H2D_TEST_ELEM_ID);
     int order = space->get_element_order(H2D_TEST_ELEM_ID);
-    selector.select_refinement(e, order, &rsln, refinement);
+    selector->select_refinement(e, order, &rsln, refinement);
 
     //check candidates
     verbose("Testing candidates");
-    const std::vector<OptimumSelector::Cand>& candidates = selector.get_candidates();
+    const std::vector<OptimumSelector::Cand>& candidates = selector->get_candidates();
     std::vector<OptimumSelector::Cand>::const_iterator cand = candidates.begin();
     while (cand != candidates.end()) {
       if (cur_test_case->should_match(*cand) && abs(cand->error) > H2D_TEST_ZERO) {
         std::stringstream str;
         str << *cand;
-        verbose(" Invalid candidate: %s", str.str().c_str());
+        verbose(" Failed candidate: %s", str.str().c_str());
         test_result |= H2D_CAND_FAILED;
       }
       cand++;
@@ -341,39 +402,49 @@ int test(bool tri) {
   } while(order_perm.next());
 
   //print result matrix
-  show_fail_matrix(fail_matrix, order_perm.get_end_quad_order());
+  show_fail_matrix(fail_matrix, space_name, order_perm.get_end_quad_order());
 
   //clenup
   delete[] fail_matrix;
 
-  if (failed)
-    return ERROR_FAILURE;
-  else
-    return ERROR_SUCCESS;
+  return !failed;
 }
 
 /// Test entry-point.
 int main(int argc, char* argv[]) {
-  //check if triangle is requested
+  //check input parameters
   bool tri = false;
   if (argc > 1 && strcmp(argv[1], "-tri") == 0)
     tri = true;
+  bool test_success = true;
 
-  //initialize
-  int result = ERROR_FAILURE;
-  if (init(tri)) {
-    result = test(tri);
-  }
+  //H1
+  info("! Space: H1");
+  if (init_h1(tri))
+    test_success &= test(tri, "H1", 2, H2DRS_MAX_ORDER);
   cleanup();
+  if (!test_success)
+    goto quit;
 
-  if (result == ERROR_SUCCESS)
+  //L2
+  info("! Space: L2");
+  if (init_l2(tri))
+    //test_success &= test(tri, "L2", 2, 3);
+    test_success &= test(tri, "L2", 2, H2DRS_MAX_ORDER);
+  cleanup();
+  if (!test_success)
+    goto quit;
+
+quit:
+  if (test_success)
   {
     info("!Test: Success");
+    return ERROR_SUCCESS;
   }
   else {
     info("!Test: Failed!");
+    return ERROR_FAILURE;
   }
-  return result;
 }
 
 /// \}

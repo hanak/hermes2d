@@ -238,7 +238,7 @@ protected: //DEBUG
 
   virtual void get_vertex_assembly_list(Element* e, int iv, AsmList* al) = 0;
   virtual void get_edge_assembly_list_internal(Element* e, int ie, AsmList* al) = 0;
-  virtual void get_bubble_assembly_list(Element* e, AsmList* al) = 0;
+  virtual void get_bubble_assembly_list(Element* e, AsmList* al);
 
   double** proj_mat;
   double*  chol_p;

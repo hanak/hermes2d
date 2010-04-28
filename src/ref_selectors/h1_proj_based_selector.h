@@ -18,6 +18,8 @@
 
 #include "proj_based_selector.h"
 
+#define H2DRS_MAX_H1_ORDER H2DRS_MAX_ORDER ///< Maximum H1 order.
+
 namespace RefinementSelectors {
 
   class HERMES2D_API H1ProjBasedSelector : public ProjBasedSelector { ///< Selector that does HP-adaptivity in H1 space using projections.

@@ -237,6 +237,12 @@ namespace RefinementSelectors {
         inx_shape++;
       }
 
+      ////DEBUG-BEGIN
+      //std::stringstream str;
+      //str << "inx." << order_h << "." << order_v;
+      //save_matrix_octave(str.str(), &shape_inxs, 1, num_shapes);
+      ////DEBUG-END
+
       //continue only if there are shapes to process
       if (num_shapes > 0) {
         //calculate projection matrix

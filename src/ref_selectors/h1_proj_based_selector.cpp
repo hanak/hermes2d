@@ -9,7 +9,7 @@ namespace RefinementSelectors {
   H1Shapeset H1ProjBasedSelector::default_shapeset;
 
   H1ProjBasedSelector::H1ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, H1Shapeset* user_shapeset)
-    : ProjBasedSelector(cand_list, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(1,1), Range<int>(2, H2DRS_MAX_ORDER)) {}
+    : ProjBasedSelector(cand_list, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(1,1), Range<int>(2, H2DRS_MAX_H1_ORDER)) {}
 
   void H1ProjBasedSelector::set_current_order_range(Element* element) {
     current_max_order = this->max_order;

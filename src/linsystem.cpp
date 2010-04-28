@@ -497,6 +497,12 @@ void LinSystem::assemble(bool rhsonly)
         if (e[i] == NULL) { isempty[j] = true; continue; }
         spaces[j]->get_element_assembly_list(e[i], &al[j]);
         // todo: neziskavat znova, pokud se element nezmenil
+        ////DEBUG-BEGIN
+        //for(int k = 0; k < al[j].cnt; k++) {
+        //  int quad_order = spaces[j]->get_shapeset()->get_order(al[j].idx[k]);
+        //  debug_log("%d. inx: %d; order: %d/%d", k, al[j].idx[k], H2D_GET_H_ORDER(quad_order), H2D_GET_V_ORDER(quad_order));
+        //}
+        ////DEBUG-END
 
         spss[j]->set_active_element(e[i]);
         spss[j]->set_master_transform();

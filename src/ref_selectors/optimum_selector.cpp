@@ -175,13 +175,15 @@ namespace RefinementSelectors {
           while (inx != indices.end() && inx->inx != inx_bubble)
             inx++;
           if (inx == indices.end()) { //bubble is unique: add it
-            //HACK: Hcurl returns bubble function 2/0 when bubble functions of up to order 1/1 are requested
+            //HACK: Hcurl returns bubble function 2/0 when bubble functions of up to order 1/1 are requested.
             order_h = std::min(order_h, i);
             order_v = std::min(order_v, i);
 
             //add bubble function
-            indices.push_back(ShapeInx(order_h, order_v, bubble_inxs[j], H2DST_BUBBLE));
-            has_bubble = true;
+            if (order_h <= i && order_v <= i) {
+              indices.push_back(ShapeInx(order_h, order_v, bubble_inxs[j], H2DST_BUBBLE));
+              has_bubble = true;
+            }
           }
         }
 
