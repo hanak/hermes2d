@@ -17,7 +17,6 @@
 #include "space.h"
 #include "matrix.h"
 #include "auto_local_array.h"
-#include <valarray>
 
 Space::Space(Mesh* mesh, Shapeset* shapeset)
      : mesh(mesh), shapeset(shapeset)
@@ -285,6 +284,7 @@ int Space::assign_dofs(int first_dof, int stride)
   this->first_dof = next_dof = first_dof;
   this->stride = stride;
 
+  reset_dof_assignment();
   assign_vertex_dofs();
   assign_edge_dofs();
   assign_bubble_dofs();
@@ -300,6 +300,33 @@ int Space::assign_dofs(int first_dof, int stride)
   return get_num_dofs();
 }
 
+void Space::reset_dof_assignment() {
+  // First assume that all vertex nodes are part of a natural BC. the member NodeData::n
+  // is misused for this purpose, since it stores nothing at this point. Also assume
+  // that all DOFs are unassigned.
+  int i, j;
+  for (i = 0; i < mesh->get_max_node_id(); i++)
+  {
+    ndata[i].n = BC_NATURAL;
+    ndata[i].dof = H2D_UNASSIGNED_DOF;
+  }
+
+  // next go through all boundary edge nodes constituting an essential BC and mark their
+  // neighboring vertex nodes also as essential
+  Element* e;
+  for_all_active_elements(e, mesh)
+  {
+    for (unsigned int i = 0; i < e->nvert; i++)
+    {
+      if (e->en[i]->bnd && bc_type_callback(e->en[i]->marker) == BC_ESSENTIAL)
+      {
+        j = e->next_vert(i);
+        ndata[e->vn[i]->id].n = BC_ESSENTIAL;
+        ndata[e->vn[j]->id].n = BC_ESSENTIAL;
+      }
+    }
+  }
+}
 
 //// assembly lists ///////////////////////////////////////////////////////////////////////////////
 
@@ -470,14 +497,13 @@ void Space::precalculate_projection_matrix(int nv, double**& mat, double*& p)
 
 void Space::update_edge_bc(Element* e, EdgePos* ep)
 {
-  const int UNASSIGNED = -2;
   if (e->active)
   {
     Node* en = e->en[ep->edge];
     NodeData* nd = &ndata[en->id];
     nd->edge_bc_proj = NULL;
 
-    if (nd->dof != UNASSIGNED && en->bnd && bc_type_callback(en->marker) == BC_ESSENTIAL)
+    if (nd->dof != H2D_UNASSIGNED_DOF && en->bnd && bc_type_callback(en->marker) == BC_ESSENTIAL)
     {
       int order = get_edge_order_internal(en);
       ep->marker = en->marker;

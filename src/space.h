@@ -165,6 +165,8 @@ public:
   void get_edge_assembly_list(Element* e, int edge, AsmList* al);
 
 protected:
+  static const int H2D_UNASSIGNED_DOF = -2; ///< DOF which was not assigned yet.
+  static const int H2D_CONSTRAINED_DOF = -1; ///< DOF which is constrained.
 
   Mesh* mesh;
   Shapeset* shapeset;
@@ -190,7 +192,7 @@ protected:
         scalar* edge_bc_proj;
         scalar* vertex_bc_coef;
       };
-      int n; // # of dofs
+      int n; ///< Number of dofs. Temporarily used during assignment of DOFs to indicate nodes which were not processed yet.
     };
     struct // constrained vertex node
     {
@@ -232,6 +234,7 @@ protected: //DEBUG
   void H2D_CHECK_ORDER(int order);
   void copy_orders_recurrent(Element* e, int order);
 
+  virtual void reset_dof_assignment(); ///< Resets assignment of DOF to an unassigned state.
   virtual void assign_vertex_dofs() = 0;
   virtual void assign_edge_dofs() = 0;
   virtual void assign_bubble_dofs() = 0;
