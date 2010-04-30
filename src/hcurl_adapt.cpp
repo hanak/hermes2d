@@ -18,6 +18,7 @@
 #include "forms.h"
 #include "refmap.h"
 #include "integrals_hcurl.h"
+#include "element_to_refine.h"
 #include "adapt.h"
 #include "hcurl_adapt.h"
 

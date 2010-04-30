@@ -182,7 +182,7 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
   fix_shared_mesh_refinements(meshes, num_comps, elem_inx_to_proc, idx, refinement_selector);
 
   //apply refinements
-  apply_refinements(meshes, elem_inx_to_proc);
+  apply_refinements(elem_inx_to_proc);
 
   //homogenize orders
   if (same_orders)
@@ -209,6 +209,9 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
     rsln[j]->enable_transform(true);
 
   verbose("Refined elements: %d", elem_inx_to_proc.size());
+
+  //store for the user to retrieve
+  last_refinements.swap(elem_inx_to_proc);
 
   have_errors = false;
   if (strat == 2 && done == true)
@@ -301,30 +304,40 @@ void Adapt::homogenize_shared_mesh_orders(Mesh** meshes) {
   }
 }
 
-void Adapt::apply_refinements(Mesh** meshes, std::vector<ElementToRefine>& elems_to_refine)
+void Adapt::apply_refinements(std::vector<ElementToRefine>& elems_to_refine)
 {
   for (vector<ElementToRefine>::const_iterator elem_ref = elems_to_refine.begin(); elem_ref != elems_to_refine.end(); elem_ref++) // go over elements to be refined
-  {
-    Element* e;
-    e = meshes[elem_ref->comp]->get_element(elem_ref->id);
+    apply_refinement(*elem_ref);
+}
 
-    if (elem_ref->split == H2D_REFINEMENT_P)
-      spaces[elem_ref->comp]->set_element_order(elem_ref->id, elem_ref->p[0]);
-    else if (elem_ref->split == H2D_REFINEMENT_H) {
-      if (e->active)
-        meshes[elem_ref->comp]->refine_element(elem_ref->id);
-      for (int j = 0; j < 4; j++)
-        spaces[elem_ref->comp]->set_element_order(e->sons[j]->id, elem_ref->p[j]);
+void Adapt::apply_refinement(const ElementToRefine& elem_ref) {
+  Space* space = spaces[elem_ref.comp];
+  Mesh* mesh = space->get_mesh();
+
+  Element* e;
+  e = mesh->get_element(elem_ref.id);
+
+  if (elem_ref.split == H2D_REFINEMENT_P)
+    space->set_element_order(elem_ref.id, elem_ref.p[0]);
+  else if (elem_ref.split == H2D_REFINEMENT_H) {
+    if (e->active)
+      mesh->refine_element(elem_ref.id);
+    for (int j = 0; j < 4; j++) {
+      if (e->sons[j]->id == 262)
+        debug_log("Invalid element");
+      space->set_element_order(e->sons[j]->id, elem_ref.p[j]);
     }
-    else {
-      if (e->active)
-        meshes[elem_ref->comp]->refine_element(elem_ref->id, elem_ref->split);
-      for (int j = 0; j < 2; j++)
-        spaces[elem_ref->comp]->set_element_order(e->sons[ (elem_ref->split == 1) ? j : j+2 ]->id, elem_ref->p[j]);
+  }
+  else {
+    if (e->active)
+      mesh->refine_element(elem_ref.id, elem_ref.split);
+    for (int j = 0; j < 2; j++) {
+      if (e->sons[(elem_ref.split == 1) ? j : j+2]->id == 262)
+        debug_log("Invalid element");
+      space->set_element_order(e->sons[ (elem_ref.split == 1) ? j : j+2 ]->id, elem_ref.p[j]);
     }
   }
 }
-
 
 ///// Unrefinements /////////////////////////////////////////////////////////////////////////////////
 

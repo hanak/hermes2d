@@ -79,6 +79,38 @@ void save_matrix_octave(const std::string& matrix_name, T** matrix, int m, int n
   fout.close();
 }
 
+/// Saves MxM sparse matrix to a octave file format.
+template<typename T>
+void save_sparse_matrix_octave(const std::string& matrix_name, const T* Ax, const int* Ap, const int* Ai, int m, const std::string& filename = std::string()) {
+
+  //create filename
+  std::string fname = filename;
+  if (fname.empty())
+    fname = matrix_name + ".mat";
+
+  //open file
+  std::ofstream fout(fname.c_str());
+  if (!fout.is_open()) {
+    error("Unable to save a matrix to a file \"%s\"", fname.c_str());
+    return;
+  }
+
+  //write header
+  fout << std::string("# name: ") << matrix_name << std::endl;
+  fout << std::string("# type: sparse matrix") << std::endl;
+  fout << std::string("# nnz: ") << Ap[m] << std::endl;
+  fout << std::string("# rows: ") << m << std::endl;
+  fout << std::string("# columns: ") << m << std::endl;
+
+  //write contents
+  for (int j = 0; j < m; j++)
+    for (int i = Ap[j]; i < Ap[j+1]; i++)
+      fout << j+1 << " " << Ai[i]+1 << " " << Ax[i] << std::endl;
+
+  //finish
+  fout.close();
+}
+
 /// Transposes an m by n matrix. If m != n, the array matrix in fact has to be
 /// a square matrix of the size max(m, n) in order for the transpose to fit inside it.
 template<typename T>

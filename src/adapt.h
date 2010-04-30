@@ -69,18 +69,21 @@ public:
   const std::vector<ElementReference>& get_regular_queue() const { return regular_queue; } ///< Returns regular queue of elements.
   int get_total_active_elements() const { return num_act_elems; } ///< Returns total number of active elements.
 
+  void apply_refinement(const ElementToRefine& elem_ref); ///< Apply refinement.
+  virtual void apply_refinements(std::vector<ElementToRefine>& elems_to_refine); ///< Apply refinements.
+  const std::vector<ElementToRefine>& get_last_refinements() const { return last_refinements; }; ///< Returns last refinements.
+
 protected: //adaptivity
   int num_act_elems; ///< A total number of active elements across all provided meshes.
   std::queue<ElementReference> priority_queue; ///< A queue of priority elements that are processed before the next element in esort is processed.
   std::vector<ElementReference> regular_queue; ///< A queue of elements which shoulb be examined.
+  std::vector<ElementToRefine> last_refinements; ///< A vector of last refinements.
 
   virtual bool should_ignore_element(const int inx_element, const Mesh* mesh, const Element* element) { return false; }; ///< Returns true, if an element should be ignored for purposes of adaptivity.
   virtual bool can_adapt_element(Mesh* mesh, Element* e, const int split, const int4& p, const int4& q) { return true; }; ///< Returns true, if an element can be adapted using a selected candidate.
   
   void fix_shared_mesh_refinements(Mesh** meshes, const int num_comps, std::vector<ElementToRefine>& elems_to_refine, AutoLocalArray2<int>& idx, RefinementSelectors::Selector* refinement_selector); ///< Fixes refinements of a mesh which is shared among multiple components of a multimesh.
   void homogenize_shared_mesh_orders(Mesh** meshes); ///< Homogenize element orders to the highest order in the mesh if the mesh is shared among components.
-
-  virtual void apply_refinements(Mesh** meshes, std::vector<ElementToRefine>& elems_to_refine); ///< Apply refinements.
 
 protected: // spaces & solutions
   const int num_comps; ///< Number of components.

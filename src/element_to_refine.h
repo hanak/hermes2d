@@ -41,4 +41,48 @@ public:
 
 extern H2D_API std::ostream& operator<<(std::ostream& stream, const ElementToRefine& elem_ref); ///< Dumps contants of the structure. Used for debugging purposes.
 
+/// Checks whether the input contains a given tag. Throws an exception otherwise.
+class HERMES2D_API TagChecker {
+  const std::string& tag;
+public:
+  explicit TagChecker(const std::string& tag) : tag(tag) {};
+  const std::string& get_tag() const { return tag; };
+};
+extern HERMES2D_API std::istream& operator>>(std::istream& stream, const TagChecker& checker); ///< Performs checking
+
+/// \brief Refinement writer and reader.
+///
+/// If binary, file is always little endian.
+class HERMES2D_API ElementToRefineStream {
+private:
+  static const char* H2DER_START_TAG; ///< Tag which start file.
+  static const char* H2DER_BIN_TAG; ///< Tag which defined uncompressed binary contents.
+  static const char* H2DER_VECTOR_TAG; ///< Tag which start a vector of refinements.
+  static const int H2DER_SIZE_BYTESIZE = 1; ///< A size of all size declaration.
+
+  std::fstream stream; ///< Underlaying stream.
+  bool little_endian; ///< True if system is little endian.
+
+  static uint8_t get_byte_size(int value); ///< Returns number of bytes necessary to store a given value.
+  void write_bytes(const void* data, int num_bytes); ///< Writes a given number of bytes in a little-edinan form.
+  void write_bytes(const int data, int num_bytes); ///< Writes a given number of LSB bytes from intenger in a little-edinan form.
+  int read_bytes(int num_bytes); ///< Reads bytes and converts then to a signed integer.
+  void write_header(); ///< Writes header.
+  void read_header(); ///< Writes header.
+
+public:
+  explicit ElementToRefineStream(const char* filename, std::ios_base::openmode mode); ///< Opens the stream.
+  void open(const char* filename, std::ios_base::openmode mode); ///< Opens the stream.
+  bool is_open() const { return stream.is_open(); }; ///< Returns true if the stream is open.
+  bool eof() const { return stream.eof(); }; ///< Returns true if EOF has been reached.
+  bool good() const { return stream.good(); }; ///< Returns true if stream is read for operation.
+  bool operator!() const { return stream.fail(); }; ///< Returns true if error occured.
+  void close() { stream.close(); }; ///< Closes the stream
+
+  friend HERMES2D_API ElementToRefineStream& operator<<(ElementToRefineStream& stream, const std::vector<ElementToRefine>& elem_refs);
+  friend HERMES2D_API ElementToRefineStream& operator>>(ElementToRefineStream& stream, std::vector<ElementToRefine>& elem_refs);
+};
+extern HERMES2D_API ElementToRefineStream& operator<<(ElementToRefineStream& stream, const std::vector<ElementToRefine>& elem_refs); ///< Stores a list of refinements.
+extern HERMES2D_API ElementToRefineStream& operator>>(ElementToRefineStream& stream, std::vector<ElementToRefine>& elem_refs); ///< Stores a list of refinements.
+
 #endif

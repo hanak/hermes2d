@@ -169,6 +169,23 @@ int main(int argc, char* argv[])
   // time measurement
   TimePeriod cpu_time;
 
+  ////DEBUG-BEGIN: import refinements
+  //{
+  //  H1Adapt hp(&space);
+  //  ElementToRefineStream errstream("data.ers", std::ios_base::in); //DEBUG
+  //  for(int i = 0; i < 92; i++) {
+  //    debug_log("%d", i);
+  //    std::vector<ElementToRefine> v;
+  //    errstream >> v;
+  //    hp.apply_refinements(v);
+  //  }
+  //  errstream.close();
+  //  space.assign_dofs();
+  //}
+  ////DEBUG-END
+
+  //ElementToRefineStream erstream("data.ers", std::ios_base::out); //DEBUG: export refinements
+
   // adaptivity loop
   int it = 1;
   bool done = false;
@@ -190,6 +207,7 @@ int main(int argc, char* argv[])
     // solve the fine mesh problem
     int p_increase = 1;
     int ref_level = 1; 
+    //p_increase = 2;  //DEBUG: critical case
     RefSystem rs(&ls, p_increase, ref_level);
     rs.assemble();
     rs.solve(1, &sln_fine);
@@ -234,6 +252,14 @@ int main(int argc, char* argv[])
       hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       ndof = assign_dofs(&space);
       if (ndof >= NDOF_STOP) done = true;
+
+      ////DEBUG-BEGIN: export refinements up to iteration 93 (critical iteration in a critical case)
+      //erstream << hp.get_last_refinements();
+      //if (it == 93) {
+      //  erstream.close();
+      //  getchar();
+      //}
+      ////DEBUG-END
     }
 
     // time measurement

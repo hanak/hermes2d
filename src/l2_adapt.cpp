@@ -18,6 +18,7 @@
 #include "forms.h"
 #include "refmap.h"
 #include "integrals_h1.h"
+#include "element_to_refine.h"
 #include "adapt.h"
 #include "l2_adapt.h"
 

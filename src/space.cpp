@@ -356,13 +356,6 @@ void Space::get_element_assembly_list(Element* e, AsmList* al)
   for (unsigned int i = 0; i < e->nvert; i++)
     get_edge_assembly_list_internal(e, i, al);
   get_bubble_assembly_list(e, al);
-  ////DEBUG-BEGIN
-  //for(int i = 0; i < al->cnt; i++) {
-  //  int inx = al->idx[i];
-  //  int order = get_shapeset()->get_order(inx);
-  //  debug_log(" Shape: %d; Order: %d", inx, order);
-  //}
-  ////DEBUG-END
 }
 
 

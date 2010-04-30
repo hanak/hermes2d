@@ -17,6 +17,7 @@
 #define __H2D_REFINEMENT_OPTIMUM_SELECTOR_H
 
 #include <ostream>
+#include "../range.h"
 #include "selector.h"
 
 #define H2DRS_ASSUMED_MAX_CANDS 512 ///< A maximum estimated number of candidates. Used for purpose of reserving a space.
@@ -51,30 +52,6 @@ namespace RefinementSelectors {
 
   extern H2D_API bool is_hp(const CandList cand_list); ///< Returns true if the candidate list contain candidates that are HP.
   extern H2D_API bool is_p_aniso(const CandList cand_list); ///< Returns true if the candidate list contain candidates with anisotropic change of orders.
-
-  template<typename T>
-  class Range { ///< Range of values.
-    T lower_bound; ///< Lower boundary.
-    T upper_bound; ///< Upper boundary.
-    bool empty_range; ///< True if range is empty.
-  public:
-    Range() : empty_range(true) {};
-    Range(const T& lower_bound, const T& upper_bound) : empty_range(lower_bound > upper_bound), lower_bound(lower_bound), upper_bound(upper_bound) {};
-    bool empty() const { return empty_range; }; ///< Returns true if range is empty.
-    const T& lower() const { return lower_bound; }; ///< Returns lower bound.
-    const T& upper() const { return upper_bound; }; ///< Returns upper bound.
-    bool is_in_closed(const T& value) const { return (value >= lower_bound && value <= upper_bound); }; ///< Returns true if value is inside the closed range.
-    bool is_in_open(const T& value) const { return (value > lower_bound && value < upper_bound); }; ///< Returns true if value is inside the open range.
-
-    static Range<T> make_envelope(const Range<T>& a, const Range<T>& b) { ///< Create an envelope which contains both ranges.
-      if (a.empty())
-        return b;
-      else if (b.empty())
-        return a;
-      else
-        return Range(std::min(a.lower(), b.lower()), std::max(a.upper(), b.upper()));
-    };
-  };
 
   class H2D_API OrderPermutator { ///< Permutates orders.
   protected:
