@@ -322,20 +322,14 @@ void Adapt::apply_refinement(const ElementToRefine& elem_ref) {
   else if (elem_ref.split == H2D_REFINEMENT_H) {
     if (e->active)
       mesh->refine_element(elem_ref.id);
-    for (int j = 0; j < 4; j++) {
-      if (e->sons[j]->id == 262)
-        debug_log("Invalid element");
+    for (int j = 0; j < 4; j++)
       space->set_element_order(e->sons[j]->id, elem_ref.p[j]);
-    }
   }
   else {
     if (e->active)
       mesh->refine_element(elem_ref.id, elem_ref.split);
-    for (int j = 0; j < 2; j++) {
-      if (e->sons[(elem_ref.split == 1) ? j : j+2]->id == 262)
-        debug_log("Invalid element");
+    for (int j = 0; j < 2; j++)
       space->set_element_order(e->sons[ (elem_ref.split == 1) ? j : j+2 ]->id, elem_ref.p[j]);
-    }
   }
 }
 

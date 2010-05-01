@@ -45,7 +45,12 @@ void copy_matrix(T** dest, T** src, int m, int n = 0) {
   }
 }
 
-/// Saves matrix to a octave file format.
+/// \brief Saves a dense matrix to a octave file format.
+/// \param[in] matrix_name A name of a matrix in Octave. It can be used to create an output filename.
+/// \param[in] matrix A pointer to an array of pointers to a rows of the matrix. Such a structure can be generated using new_matrix() or it can be a pointer to an 1D C-array.
+/// \param[in] m A number of rows of the matrix. Set to 1 if the matrix is a pointer to a 1D C-array.
+/// \param[in] n A number of columns of the matrix. If zero, it is assumed to be equal to m.
+/// \param[in] filename An output filename. If not specified, matrix_name will be used by concatenating it with a suffix '.mat'.
 template<typename T>
 void save_matrix_octave(const std::string& matrix_name, T** matrix, int m, int n = 0, const std::string& filename = std::string()) {
   if (n == 0) n = m;
