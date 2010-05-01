@@ -6,7 +6,6 @@
 #include "solver_umfpack.h"
 
 using namespace RefinementSelectors;
->>>>>>> Reorganized adaptivity classes
 
 //  This is another example that allows you to compare h- and hp-adaptivity from the point of view
 //  of both CPU time requirements and discrete problem size, look at the quality of the a-posteriori

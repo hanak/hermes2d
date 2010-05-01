@@ -24,7 +24,7 @@
 
 using namespace std;
 
-#ifdef COMPLEX
+#ifdef H2D_COMPLEX
 
 HcurlAdapt::HcurlAdapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
   for (int i = 0; i < num_comps; i++)

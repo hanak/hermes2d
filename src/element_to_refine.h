@@ -42,18 +42,18 @@ public:
 extern H2D_API std::ostream& operator<<(std::ostream& stream, const ElementToRefine& elem_ref); ///< Dumps contants of the structure. Used for debugging purposes.
 
 /// Checks whether the input contains a given tag. Throws an exception otherwise.
-class HERMES2D_API TagChecker {
+class H2D_API TagChecker {
   const std::string& tag;
 public:
   explicit TagChecker(const std::string& tag) : tag(tag) {};
   const std::string& get_tag() const { return tag; };
 };
-extern HERMES2D_API std::istream& operator>>(std::istream& stream, const TagChecker& checker); ///< Performs checking
+extern H2D_API std::istream& operator>>(std::istream& stream, const TagChecker& checker); ///< Performs checking
 
 /// \brief Refinement writer and reader.
 ///
 /// If binary, file is always little endian.
-class HERMES2D_API ElementToRefineStream {
+class H2D_API ElementToRefineStream {
 private:
   static const char* H2DER_START_TAG; ///< Tag which start file.
   static const char* H2DER_BIN_TAG; ///< Tag which defined uncompressed binary contents.
@@ -79,10 +79,10 @@ public:
   bool operator!() const { return stream.fail(); }; ///< Returns true if error occured.
   void close() { stream.close(); }; ///< Closes the stream
 
-  friend HERMES2D_API ElementToRefineStream& operator<<(ElementToRefineStream& stream, const std::vector<ElementToRefine>& elem_refs);
-  friend HERMES2D_API ElementToRefineStream& operator>>(ElementToRefineStream& stream, std::vector<ElementToRefine>& elem_refs);
+  friend H2D_API ElementToRefineStream& operator<<(ElementToRefineStream& stream, const std::vector<ElementToRefine>& elem_refs);
+  friend H2D_API ElementToRefineStream& operator>>(ElementToRefineStream& stream, std::vector<ElementToRefine>& elem_refs);
 };
-extern HERMES2D_API ElementToRefineStream& operator<<(ElementToRefineStream& stream, const std::vector<ElementToRefine>& elem_refs); ///< Stores a list of refinements.
-extern HERMES2D_API ElementToRefineStream& operator>>(ElementToRefineStream& stream, std::vector<ElementToRefine>& elem_refs); ///< Stores a list of refinements.
+extern H2D_API ElementToRefineStream& operator<<(ElementToRefineStream& stream, const std::vector<ElementToRefine>& elem_refs); ///< Stores a list of refinements.
+extern H2D_API ElementToRefineStream& operator>>(ElementToRefineStream& stream, std::vector<ElementToRefine>& elem_refs); ///< Stores a list of refinements.
 
 #endif

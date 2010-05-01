@@ -19,7 +19,7 @@ using namespace std;
 
 #define H2D_LOG_FILE_DELIM_SIZE 80
 
-HERMES2D_API const std::string get_quad_order_str(const int quad_order) {
+H2D_API const std::string get_quad_order_str(const int quad_order) {
   std::stringstream str;
   str << "(H:" << H2D_GET_H_ORDER(quad_order) << ";V:" << H2D_GET_V_ORDER(quad_order) << ")";
   return str.str();

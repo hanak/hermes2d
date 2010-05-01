@@ -10,7 +10,7 @@
 #define H2D_RV_D1DX 2
 #define H2D_RV_D0DY 3
 
-#ifdef COMPLEX
+#ifdef H2D_COMPLEX
 
 namespace RefinementSelectors {
   HcurlShapeset HcurlProjBasedSelector::default_shapeset;

@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Hermes2D.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __HERMES2D_HCURL_ADAPT_H
-#define __HERMES2D_HCURL_ADAPT_H
+#ifndef __H2D_HCURL_ADAPT_H
+#define __H2D_HCURL_ADAPT_H
 
-#ifdef COMPLEX
+#ifdef H2D_COMPLEX
 
 /// \brief hp-adaptivity module for Hcurl spaces.
 ///
@@ -26,7 +26,7 @@
 /// If not specifie by the used, this class uses the most accurate adaptivity
 /// selection algorithm which is slow.
 ///
-class HERMES2D_API HcurlAdapt : public Adapt {
+class H2D_API HcurlAdapt : public Adapt {
 public:
   HcurlAdapt(const Tuple<Space*>& spaces); ///< Initializes the class.
 

@@ -9,7 +9,7 @@
 
 namespace RefinementSelectors {
 
-  HERMES2D_API std::ostream &operator<<(std::ostream &stream, const OptimumSelector::Cand& cand) {
+  H2D_API std::ostream &operator<<(std::ostream &stream, const OptimumSelector::Cand& cand) {
     stream.precision(2);
     stream << "split:" << get_refin_str(cand.split);
     stream << " err:" << std::scientific << cand.error << " dofs:" << cand.dofs << " ";
@@ -25,7 +25,7 @@ namespace RefinementSelectors {
     return stream;
   }
 
-  HERMES2D_API bool is_hp(const CandList cand_list) {
+  H2D_API bool is_hp(const CandList cand_list) {
     switch(cand_list) {
       case H2D_P_ISO:
       case H2D_P_ANISO:
@@ -39,7 +39,7 @@ namespace RefinementSelectors {
     }
   }
 
-  HERMES2D_API bool is_p_aniso(const CandList cand_list) {
+  H2D_API bool is_p_aniso(const CandList cand_list) {
     switch(cand_list) {
       case H2D_P_ISO: return false;
       case H2D_P_ANISO: return true;

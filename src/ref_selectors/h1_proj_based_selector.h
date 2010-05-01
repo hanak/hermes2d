@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Hermes2D.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __HERMES2D_REFINEMENT_SELECTORS_H1_PROJ_BASED_SELECTOR_H
-#define __HERMES2D_REFINEMENT_SELECTORS_H1_PROJ_BASED_SELECTOR_H
+#ifndef __H2D_REFINEMENT_SELECTORS_H1_PROJ_BASED_SELECTOR_H
+#define __H2D_REFINEMENT_SELECTORS_H1_PROJ_BASED_SELECTOR_H
 
 #include "proj_based_selector.h"
 
@@ -22,7 +22,7 @@
 
 namespace RefinementSelectors {
 
-  class HERMES2D_API H1ProjBasedSelector : public ProjBasedSelector { ///< Selector that does HP-adaptivity in H1 space using projections.
+  class H2D_API H1ProjBasedSelector : public ProjBasedSelector { ///< Selector that does HP-adaptivity in H1 space using projections.
   public: //API
     H1ProjBasedSelector(CandList cand_list = H2D_HP_ANISO, double conv_exp = 1.0, int max_order = H2DRS_DEFAULT_ORDER, H1Shapeset* user_shapeset = NULL);
   protected: //overloads

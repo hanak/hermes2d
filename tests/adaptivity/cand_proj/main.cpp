@@ -194,7 +194,7 @@ bool init_l2(bool tri) {
 
     // weakform
     weakform = new WeakForm(1);
-    weakform->add_biform(0, 0, callback(l2_biform), SYM);
+    weakform->add_biform(0, 0, callback(l2_biform), H2D_SYM);
     weakform->add_liform(0, l2_liform, l2_liform, H2D_ANY);
 
     //solver

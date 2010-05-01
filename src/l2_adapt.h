@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Hermes2D.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __HERMES2D_L2_ADAPT_H
-#define __HERMES2D_L2_ADAPT_H
+#ifndef __H2D_L2_ADAPT_H
+#define __H2D_L2_ADAPT_H
 
 /// \brief hp-adaptivity module for L2 spaces.
 ///
@@ -24,7 +24,7 @@
 /// If not specifie by the used, this class uses the most accurate adaptivity
 /// selection algorithm which is slow.
 ///
-class HERMES2D_API L2Adapt : public Adapt {
+class H2D_API L2Adapt : public Adapt {
 public:
   L2Adapt(const Tuple<Space*>& spaces); ///< Initializes the class.
 

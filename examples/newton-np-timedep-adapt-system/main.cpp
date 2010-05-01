@@ -49,6 +49,8 @@
 #include "solver_umfpack.h"
 #include <string>
 
+using namespace RefinementSelectors;
+
 #define SIDE_MARKER 1
 #define TOP_MARKER 2
 #define BOT_MARKER 3

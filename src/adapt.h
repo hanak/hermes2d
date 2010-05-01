@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Hermes2D.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef __HERMES2D_ADAPT_H
-#define __HERMES2D_ADAPT_H
+#ifndef __H2D_ADAPT_H
+#define __H2D_ADAPT_H
 
 #include "tuple.h"
 #include "forms.h"
@@ -24,8 +24,8 @@
 
 #define H2D_MAX_COMPONENTS 10 ///< A maximum number of equations. Equals to a mesh-space pairs.
 
-HERMES2D_API_USED_TEMPLATE(Tuple<Space*>);
-HERMES2D_API_USED_TEMPLATE(Tuple<Solution*>);
+H2D_API_USED_TEMPLATE(Tuple<Space*>);
+H2D_API_USED_TEMPLATE(Tuple<Solution*>);
 
 /// \brief hp-adaptivity module.
 ///
@@ -35,7 +35,7 @@ HERMES2D_API_USED_TEMPLATE(Tuple<Solution*>);
 /// If not specifie by the used, this class uses the most accurate adaptivity
 /// selection algorithm which is slow.
 ///
-class HERMES2D_API Adapt
+class H2D_API Adapt
 {
 protected:
   Adapt(const Tuple<Space*>& spaces); ///< Initializes the class.
