@@ -63,7 +63,7 @@ public:
   void save_rhs_bin(const char* filename);
 
   void enable_dir_contrib(bool enable = true) {  want_dir_contrib = enable;  }
-  scalar* get_solution_vec() { return Vec; }
+  const scalar* get_solution_vec() const { return Vec; }
 
   int get_num_dofs() const { return ndofs; };
   int get_matrix_size() const;
@@ -71,6 +71,7 @@ public:
     { Ap = this->Ap; Ai = this->Ai; Ax = this->Ax; size = ndofs; }
   void get_rhs(scalar*& RHS, int& size) const { RHS = this->RHS; size=ndofs; }
   void get_solution_vector(scalar*& sln_vector, int& sln_vector_len) { sln_vector = Vec; sln_vector_len = ndofs; }
+  void get_solution_vector(std::vector<scalar>& sln_vector_out) const; ///< Returns a copy of a solution vector.
 
 protected:
 

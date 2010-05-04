@@ -640,6 +640,8 @@ double Adapt::calc_error(Tuple<Solution*> solutions, Tuple<Solution*> ref_soluti
 }
 
 void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
+  assert_msg(num_act_elems > 0, "Number of active elements (%d) is invalid.", num_act_elems);
+
   //prepare space for queue (it is assumed that it will only grow since we can just split)
   regular_queue.clear();
   if (num_act_elems < (int)regular_queue.capacity()) {

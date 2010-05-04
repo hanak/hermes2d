@@ -27,6 +27,7 @@ public:
   bool empty() const { return empty_range; }; ///< Returns true if range is empty.
   const T& lower() const { return lower_bound; }; ///< Returns lower bound.
   const T& upper() const { return upper_bound; }; ///< Returns upper bound.
+  bool is_in_closed(const Range<T>& range) const { return (range.lower_bound >= lower_bound && range.upper_bound <= upper_bound); }; ///< Returns true if value is inside the closed range.
   bool is_in_closed(const T& value) const { return (value >= lower_bound && value <= upper_bound); }; ///< Returns true if value is inside the closed range.
   bool is_in_open(const T& value) const { return (value > lower_bound && value < upper_bound); }; ///< Returns true if value is inside the open range.
   void enlarge_to_include(const T& value) { ///< Enlarge range to include a value.

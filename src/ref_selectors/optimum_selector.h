@@ -50,6 +50,7 @@ namespace RefinementSelectors {
     H2D_HP_ANISO ///< H-, ANISO- and P-candidates. Orders are modified non-uniformly.
   };
 
+  extern H2D_API const char* get_cand_list_str(const CandList cand_list); ///< Returns string representation of the enum. Used for debugging and output purposes.
   extern H2D_API bool is_hp(const CandList cand_list); ///< Returns true if the candidate list contain candidates that are HP.
   extern H2D_API bool is_p_aniso(const CandList cand_list); ///< Returns true if the candidate list contain candidates with anisotropic change of orders.
 

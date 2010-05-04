@@ -773,7 +773,7 @@ scalar* Projection::project()
   ps.assemble();
   Solution temp;
   ps.solve(0);
-  scalar* sln_vec = ps.get_solution_vec();
+  const scalar* sln_vec = ps.get_solution_vec();
   int ndofs = ps.get_num_dofs();
   vec = new scalar[ndofs];
   memcpy(vec, sln_vec, ndofs * sizeof(scalar));

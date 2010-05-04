@@ -441,7 +441,7 @@ void LinSystem::assemble(bool rhsonly)
   TimePeriod cpu_time;
 
   // create slave pss's for test functions, init quadrature points
-  std::vector<PrecalcShapeset*> spss(wf->neq, NULL);
+  std::vector<PrecalcShapeset*> spss(wf->neq, static_cast<PrecalcShapeset*>(NULL));
   PrecalcShapeset *fu, *fv;
   std::vector<RefMap> refmap(wf->neq);
   for (int i = 0; i < wf->neq; i++)
@@ -944,7 +944,15 @@ bool LinSystem::solve(int n, ...)
 }
 
 
-//// matrix output /////////////////////////////////////////////////////////////////////////////////
+//// matrix and solution output /////////////////////////////////////////////////////////////////////////////////
+
+void LinSystem::get_solution_vector(std::vector<scalar>& sln_vector_out) const {
+  assert_msg(ndofs > 0, "Number of DOFs is not greater than zero");
+  std::vector<scalar> temp(ndofs);
+  sln_vector_out.swap(temp);
+  for(int i = 0; i < ndofs; i++)
+    sln_vector_out[i] = Vec[i];
+}
 
 void LinSystem::save_matrix_matlab(const char* filename, const char* varname)
 {

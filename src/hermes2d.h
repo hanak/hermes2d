@@ -20,6 +20,7 @@
 
 #include "common.h"
 
+#include "range.h"
 #include "tuple.h"
 #include "limit_order.h"
 

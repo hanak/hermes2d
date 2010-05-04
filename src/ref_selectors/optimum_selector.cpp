@@ -25,6 +25,20 @@ namespace RefinementSelectors {
     return stream;
   }
 
+  H2D_API const char* get_cand_list_str(const CandList cand_list) {
+    switch(cand_list) {
+      case H2D_P_ISO: return "P_ISO";
+      case H2D_P_ANISO: return "P_ANISO";
+      case H2D_H_ISO: return "H_ISO";
+      case H2D_H_ANISO: return "H_ANISO";
+      case H2D_HP_ISO: return "HP_ISO";
+      case H2D_HP_ANISO_H: return "HP_ANISO_H";
+      case H2D_HP_ANISO_P: return "HP_ANISO_P";
+      case H2D_HP_ANISO: return "HP_ANISO";
+      default: error("Invalid adapt type %d.", cand_list); return false;
+    }
+  }
+
   H2D_API bool is_hp(const CandList cand_list) {
     switch(cand_list) {
       case H2D_P_ISO:
@@ -35,7 +49,7 @@ namespace RefinementSelectors {
       case H2D_HP_ANISO_H:
       case H2D_HP_ANISO_P:
       case H2D_HP_ANISO: return true; break;
-      default: error("invalid adapt type %d", cand_list); return false;
+      default: error("Invalid adapt type %d.", cand_list); return false;
     }
   }
 
@@ -49,7 +63,7 @@ namespace RefinementSelectors {
       case H2D_HP_ANISO_H: return false;
       case H2D_HP_ANISO_P: return true;
       case H2D_HP_ANISO: return true;
-      default: error("invalid adapt type %d", cand_list); return false;
+      default: error("Invalid adapt type %d.", cand_list); return false;
     }
   }
 
