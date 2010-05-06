@@ -67,8 +67,8 @@ private:
   void write_bytes(const void* data, int num_bytes); ///< Writes a given number of bytes in a little-edinan form.
   void write_bytes(const int data, int num_bytes); ///< Writes a given number of LSB bytes from intenger in a little-edinan form.
   int read_bytes(int num_bytes); ///< Reads bytes and converts then to a signed integer.
-  void write_header(); ///< Writes header.
-  void read_header(); ///< Writes header.
+  void write_header(std::ios_base::openmode mode); ///< Writes header.
+  bool read_header(std::ios_base::openmode mode); ///< Reads header. Returns true if successful.
 
 public:
   explicit ElementToRefineStream(const char* filename, std::ios_base::openmode mode); ///< Opens the stream.

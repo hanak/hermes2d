@@ -386,7 +386,8 @@ int main(int argc, char* argv[])
 
       // calculate element errors and total error estimate
       H1Adapt hp(Tuple<Space*>(&space_T, &space_phi));
-      err_est = hp.calc_error(Tuple<Solution*>(&T_coarse, &phi_coarse), Tuple<Solution*>(&T_fine, &phi_fine)) * 100;
+      hp.set_solutions(Tuple<Solution*>(&T_coarse, &phi_coarse), Tuple<Solution*>(&T_fine, &phi_fine));
+      err_est = hp.calc_error() * 100;
       // report error
       info("Error estimate with hp.calc_error_2: %g%%", err_est);
 

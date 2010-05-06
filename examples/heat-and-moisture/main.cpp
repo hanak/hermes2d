@@ -233,11 +233,12 @@ int main(int argc, char* argv[])
 
       // calculate errors and adapt the solution
       H1Adapt hp(Tuple<Space*>(&temp, &moist));
+      hp.set_solutions(Tuple<Solution*>(&temp_sln, &moist_sln), Tuple<Solution*>(&temp_rsln, &moist_rsln));
       hp.set_biform(0, 0, callback(bilinear_form_sym_0_0));
       hp.set_biform(0, 1, callback(bilinear_form_sym_0_1));
       hp.set_biform(1, 0, callback(bilinear_form_sym_1_0));
       hp.set_biform(1, 1, callback(bilinear_form_sym_1_1));
-      double space_err = hp.calc_error(Tuple<Solution*>(&temp_sln, &moist_sln), Tuple<Solution*>(&temp_rsln, &moist_rsln)) * 100;
+      double space_err = hp.calc_error() * 100;
       info("Energy error est %g%%", space_err);
       if (space_err > SPACE_TOL) hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY, SAME_ORDERS);
       else done = true;

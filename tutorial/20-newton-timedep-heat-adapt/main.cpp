@@ -250,7 +250,8 @@ int main(int argc, char* argv[])
 
       // calculate error estimate wrt. fine mesh solution
       H1Adapt hp(&space);
-      err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+      hp.set_solutions(&sln_coarse, &sln_fine);
+      err_est = hp.calc_error() * 100;
       info("ndof: %d, err_est: %g%%", space.get_num_dofs(), err_est);
 
       // if err_est too large, adapt the mesh

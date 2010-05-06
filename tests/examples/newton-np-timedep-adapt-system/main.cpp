@@ -200,8 +200,9 @@ bool solveAdaptive(Mesh &Cmesh, Mesh &phimesh, Mesh &basemesh, NonlinSystem &nls
 
       // Calculate element errors and total estimate
       H1Adapt hp(Tuple<Space*>(&C, &phi));
+      hp.set_solutions(Tuple<Solution*>(&Csln_coarse, &phisln_coarse), Tuple<Solution*>(&Csln_fine, &phisln_fine));
       info("Calculating element errors");
-      err = hp.calc_error(Tuple<Solution*>(&Csln_coarse, &phisln_coarse), Tuple<Solution*>(&Csln_fine, &phisln_fine)) * 100;
+      err = hp.calc_error() * 100;
       info("Error: %g%%", err);
 
       if (err < ERR_STOP) {

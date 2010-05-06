@@ -58,35 +58,63 @@ ElementToRefineStream::ElementToRefineStream(const char* filename, std::ios_base
 }
 
 void ElementToRefineStream::open(const char* filename, std::ios_base::openmode mode) {
-  error_if(mode != ios_base::in && mode != ios_base::out, "Only in and out modes are supported.");
+  error_if((mode & ios_base::binary) == 0, "Only binary mode is supported.");
+  error_if((mode & ios_base::in) == 0 && (mode & ios_base::out) == 0 && (mode & ios_base::app) == 0, "Only in, out, and append mode is supported.");
 
-  //open stream
-  stream.open(filename, mode | ios_base::binary);
+  //if append: check header and append
+  if ((mode & ios_base::app) != 0) {
+    //open for reading
+    stream.open(filename, (mode & ~ios_base::app) | ios_base::in);
 
-  //check header (read)
-  if (stream.good()) {
-    if (mode == ios_base::in)
-      read_header();
-    else if (mode == ios_base::out)
-      write_header();
+    //if fails: write new file
+    if (!stream.is_open()) {
+      stream.open(filename, (mode & ~ios_base::app) | ios_base::out);
+      error_if(!stream.is_open(), "Unable to open the stream \"%s\" for writing.", filename);
+      write_header(mode);
+    }
+    else {
+      //read header
+      bool header_ok = read_header(mode);
+      stream.close();
+
+      //if header was fine: open as append
+      if (header_ok)
+        stream.open(filename, mode);
+    }
+  }
+  else {
+    //open stream
+    stream.open(filename, mode);
+
+    //check header (read)
+    if (stream.good()) {
+      if ((mode & ios_base::in) != 0)
+        read_header(mode);
+      else if ((mode & ios_base::out) != 0)
+        write_header(mode);
+    }
   }
 }
 
-void ElementToRefineStream::write_header() {
+void ElementToRefineStream::write_header(std::ios_base::openmode mode) {
+  assert_msg((mode & ios_base::binary) != 0, "Binary mode supported only.");
+
   //write header tag
   stream << H2DER_START_TAG << " " << H2DER_BIN_TAG << endl;
 }
 
-void ElementToRefineStream::read_header() {
-  //read header
+bool ElementToRefineStream::read_header(std::ios_base::openmode mode) {
+  assert_msg((mode & ios_base::binary) != 0, "Binary mode supported only.");
 
   //decode
   try {
     //read header tag
     stream >> TagChecker(H2DER_START_TAG) >> skipws >> TagChecker(H2DER_BIN_TAG) >> skipws;
+    return true;
   }
   catch(std::runtime_error& err) {
     error("Invalid file tag or unsupported file format (%s)", err.what());
+    return false;
   }
 }
 

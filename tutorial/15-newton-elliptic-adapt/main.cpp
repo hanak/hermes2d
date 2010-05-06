@@ -241,7 +241,8 @@ int main(int argc, char* argv[])
 
     // calculate element errors and total error estimate
     H1Adapt hp(&space);
-    err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+    hp.set_solutions(&sln_coarse, &sln_fine);
+    err_est = hp.calc_error() * 100;
 
     // time measurement
     cpu_time.tick();

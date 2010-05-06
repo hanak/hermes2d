@@ -36,7 +36,10 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const CandList CAND_LIST = H2D_HP_ANISO;         // Type of automatic adaptivity.
+const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinement candidates. Possible values are
+                                         // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
+                                         // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
+                                         // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
 const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
                                   // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
@@ -172,8 +175,8 @@ int main(int argc, char* argv[])
   ////DEBUG-BEGIN: import refinements
   //{
   //  H1Adapt hp(&space);
-  //  ElementToRefineStream errstream("data.ers", std::ios_base::in); //DEBUG
-  //  for(int i = 0; i < 92; i++) {
+  //  ElementToRefineStream errstream("data.ers", std::ios_base::in | std::ios_base::binary); //DEBUG
+  //  for(int i = 0; i < 91; i++) {
   //    debug_log("%d", i);
   //    std::vector<ElementToRefine> v;
   //    errstream >> v;
@@ -183,8 +186,6 @@ int main(int argc, char* argv[])
   //  space.assign_dofs();
   //}
   ////DEBUG-END
-
-  //ElementToRefineStream erstream("data.ers", std::ios_base::out); //DEBUG: export refinements
 
   // adaptivity loop
   int it = 1;
@@ -207,7 +208,7 @@ int main(int argc, char* argv[])
     // solve the fine mesh problem
     int p_increase = 1;
     int ref_level = 1; 
-    //p_increase = 2;  //DEBUG: critical case
+    p_increase = 2;  //DEBUG: critical case
     RefSystem rs(&ls, p_increase, ref_level);
     rs.assemble();
     rs.solve(1, &sln_fine);
@@ -226,7 +227,8 @@ int main(int argc, char* argv[])
 
     // calculate error estimate wrt. fine mesh solution
     H1Adapt hp(&space);
-    double err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+    hp.set_solutions(&sln_coarse, &sln_fine);
+    double err_est = hp.calc_error() * 100;
 
     // time measurement
     cpu_time.tick();
@@ -254,11 +256,14 @@ int main(int argc, char* argv[])
       if (ndof >= NDOF_STOP) done = true;
 
       ////DEBUG-BEGIN: export refinements up to iteration 93 (critical iteration in a critical case)
+      //std::ios_base::openmode mode = std::ios_base::app;
+      //if (it == 2)
+      //  mode = std::ios_base::out;
+      //ElementToRefineStream erstream("data.ers", mode | std::ios_base::binary); //DEBUG: export refinements
       //erstream << hp.get_last_refinements();
-      //if (it == 93) {
-      //  erstream.close();
+      //erstream.close();
+      //if (it == 93)
       //  getchar();
-      //}
       ////DEBUG-END
     }
 

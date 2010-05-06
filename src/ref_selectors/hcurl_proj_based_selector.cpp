@@ -78,7 +78,7 @@ namespace RefinementSelectors {
     return matrix;
   }
 
-  scalar HcurlProjBasedSelector::evaluate_rsh_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
+  scalar HcurlProjBasedSelector::evaluate_rsh_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
     double coef_curl = std::abs(sub_trf.coef_mx * sub_trf.coef_my);
     scalar total_value = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
@@ -107,7 +107,7 @@ namespace RefinementSelectors {
     return total_value;
   }
 
-  double HcurlProjBasedSelector::evaluate_error_sub_element(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
+  double HcurlProjBasedSelector::evaluate_error_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
     double total_error = 0;
     double coef_curl = std::abs(sub_trf.coef_mx * sub_trf.coef_my);
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {

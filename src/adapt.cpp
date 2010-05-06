@@ -28,21 +28,27 @@
 
 using namespace std;
 
+/* Private constants */
+#define H2D_TOTAL_ERROR_MASK 0x0F ///< A mask which mask-out total error type. Used by Adapt::calc_error() internally. \internal
+#define H2D_ELEMENT_ERROR_MASK 0xF0 ///< A mask which mask-out element error type. Used by Adapt::calc_error() internally. \internal
+
 Adapt::Adapt(const Tuple<Space*>& spaces)
-  : num_comps(spaces.size()) {
+  : num_comps(spaces.size()), num_act_elems(-1)
+  , have_solutions(false), have_errors(false) {
   // check validity
-  error_if(num_comps <= 0, "to few components (%d), only %d supported", num_comps, H2D_MAX_COMPONENTS);
-  error_if(num_comps >= H2D_MAX_COMPONENTS, "to many components (%d), only %d supported", num_comps, H2D_MAX_COMPONENTS);
+  error_if(num_comps <= 0, "To few components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
+  error_if(num_comps >= H2D_MAX_COMPONENTS, "To many components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
 
   //initialize spaces
   for(int i = 0; i < num_comps; i++)
     this->spaces[i] = spaces[i];
 
   // reset values
-  have_errors = false;
   memset(errors, 0, sizeof(errors));
   memset(form, 0, sizeof(form));
   memset(ord, 0, sizeof(ord));
+  memset(sln, 0, sizeof(ord));
+  memset(rsln, 0, sizeof(ord));
 }
 
 Adapt::~Adapt()
@@ -129,7 +135,7 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
         // first refinement strategy:
         // refine elements until prescribed amount of error is processed
         // if more elements have similar error refine all to keep the mesh symmetric
-        if ((strat == 0) && (processed_error > sqrt(thr) * total_err) && fabs((err - err0)/err0) > 1e-3) break;
+        if ((strat == 0) && (processed_error > sqrt(thr) * errors_sum) && fabs((err - err0)/err0) > 1e-3) break;
 
         // second refinement strategy:
         // refine all elements whose error is bigger than some portion of maximal error
@@ -148,7 +154,7 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
       bool refined = refinement_selector->select_refinement(e, current, rsln[comp], elem_ref);
 
       //add to a list of elements that are going to be refined
-      if (refined && can_adapt_element(mesh, e, elem_ref.split, elem_ref.p, elem_ref.q) ) {
+      if (refined && can_adapt_element(mesh, e, elem_ref) ) {
         idx[id][comp] = (int)elem_inx_to_proc.size();
         elem_inx_to_proc.push_back(elem_ref);
         err0 = err;
@@ -179,12 +185,12 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
   }
 
   //fix refinement if multimesh is used
-  fix_shared_mesh_refinements(meshes, num_comps, elem_inx_to_proc, idx, refinement_selector);
+  fix_shared_mesh_refinements(meshes, elem_inx_to_proc, idx, refinement_selector);
 
   //apply refinements
   apply_refinements(elem_inx_to_proc);
 
-  //homogenize orders
+  //homogenize orders in a case of a multimesh
   if (same_orders)
     homogenize_shared_mesh_orders(meshes);
 
@@ -220,7 +226,7 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
   return done;
 }
 
-void Adapt::fix_shared_mesh_refinements(Mesh** meshes, const int num_comps, std::vector<ElementToRefine>& elems_to_refine, AutoLocalArray2<int>& idx, RefinementSelectors::Selector* refinement_selector) {
+void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefine>& elems_to_refine, AutoLocalArray2<int>& idx, RefinementSelectors::Selector* refinement_selector) {
   int num_elem_to_proc = elems_to_refine.size();
   for(int inx = 0; inx < num_elem_to_proc; inx++) {
     ElementToRefine& elem_ref = elems_to_refine[inx];
@@ -302,6 +308,10 @@ void Adapt::homogenize_shared_mesh_orders(Mesh** meshes) {
       spaces[i]->set_element_order(e->id, H2D_MAKE_QUAD_ORDER(current_order_h, current_order_v));
     }
   }
+}
+
+const std::vector<ElementToRefine>& Adapt::get_last_refinements() const {
+  return last_refinements;
 }
 
 void Adapt::apply_refinements(std::vector<ElementToRefine>& elems_to_refine)
@@ -453,6 +463,23 @@ void Adapt::set_biform(int i, int j, biform_val_t bi_form, biform_ord_t bi_ord)
   ord[i][j] = bi_ord;
 }
 
+void Adapt::set_solutions(Tuple<Solution*> solutions, Tuple<Solution*> ref_solutions) {
+  error_if(solutions.size() != ref_solutions.size(), "Number of solutions (%d) and a number of reference solutions (%d) is not the same.", solutions.size(), ref_solutions.size());
+  error_if(solutions.size() != num_comps, "Wrong number of solutions (%d), expected %d.", solutions.size(), num_comps);
+
+  // obtain solutions
+  for (int i = 0; i < num_comps; i++) {
+    sln[i] = solutions[i];
+    error_if(sln[i] == NULL, "A solution for a component %d is NULL.", i);
+    sln[i]->set_quad_2d(&g_quad_2d_std);
+    rsln[i] = ref_solutions[i];
+    error_if(rsln[i] == NULL, "A reference solution for a component %d is NULL.", i);
+    rsln[i]->set_quad_2d(&g_quad_2d_std);
+  }
+
+  have_solutions = true;
+}
+
 scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
                              MeshFunction *sln1, MeshFunction *sln2, MeshFunction *rsln1, MeshFunction *rsln2,
                              RefMap *rv1,        RefMap *rv2,        RefMap *rrv1,        RefMap *rrv2)
@@ -556,17 +583,8 @@ scalar Adapt::eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double Adapt::calc_error(Tuple<Solution*> solutions, Tuple<Solution*> ref_solutions) {
-  error_if(solutions.size() != ref_solutions.size(), "a number of solutions (%d) and a number of reference solutions (%d) is not the same.", solutions.size(), ref_solutions.size());
-  error_if(solutions.size() != num_comps, "wrong number of solutions (%d), expected %d", solutions.size(), num_comps);
-
-  // obtain solutions
-  for (int i = 0; i < num_comps; i++) {
-    sln[i] = solutions[i];
-    sln[i]->set_quad_2d(&g_quad_2d_std);
-    rsln[i] = ref_solutions[i];
-    rsln[i]->set_quad_2d(&g_quad_2d_std);
-  }
+double Adapt::calc_error(unsigned int error_flags) {
+  error_if(!have_solutions, "A (coarse) solution and a reference solutions are not set, see set_solutions()");
 
   // prepare multi-mesh traversal and error arrays
   AUTOLA_OR(Mesh*, meshes, 2*num_comps);
@@ -584,11 +602,11 @@ double Adapt::calc_error(Tuple<Solution*> solutions, Tuple<Solution*> ref_soluti
 
     num_act_elems += sln[i]->get_mesh()->get_num_active_elements();
 
-    int max = meshes[i]->get_max_element_id();
+    int max_element_id = meshes[i]->get_max_element_id();
     if (errors[i] != NULL) delete [] errors[i];
-    try { errors[i] = new double[max]; }
-    catch(bad_alloc&) { error("unable to allocate space for errors of component %d", i); };
-    memset(errors[i], 0, sizeof(double) * max);
+    try { errors[i] = new double[max_element_id]; }
+    catch(bad_alloc&) { error("Unable to allocate space for errors of the component %d.", i); };
+    memset(errors[i], 0, sizeof(double) * max_element_id);
   }
 
   //prepare space for norms
@@ -631,12 +649,38 @@ double Adapt::calc_error(Tuple<Solution*> solutions, Tuple<Solution*> ref_soluti
   }
   trav.finish();
 
+  //make the error relative
+  if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEM_ERROR_REL_SQ) {
+    errors_sum = 0;
+    for (int i = 0; i < num_comps; i++) {
+      double norm_sq = norms[i];
+      double* error_sq_comp = errors[i];
+      Element* e;
+      for_all_active_elements(e, meshes[i]) {
+        error_sq_comp[e->id] /= norm_sq;
+        errors_sum += error_sq_comp[e->id];
+      }
+    }
+  }
+  else if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEM_ERROR_ABS_SQ) {
+    errors_sum = total_error;
+  }
+  else
+    error("Unknown element error type (0x%x).", error_flags & H2D_ELEMENT_ERROR_MASK);
+
   //prepare an ordered list of elements according to an error
   fill_regular_queue(meshes, ref_meshes);
 
+  //return error value
   have_errors = true;
-  total_err = total_error/* / total_norm*/;
-  return sqrt(total_error / total_norm);
+  if ((error_flags & H2D_TOTAL_ERROR_MASK) == H2D_TOTAL_ERROR_ABS)
+    return sqrt(total_error);
+  else if ((error_flags & H2D_TOTAL_ERROR_MASK) == H2D_TOTAL_ERROR_REL)
+    return sqrt(total_error / total_norm);
+  else {
+    error("Unknown return error type (0x%x).", error_flags & H2D_TOTAL_ERROR_MASK);
+    return -1.0;
+  }
 }
 
 void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
@@ -654,14 +698,9 @@ void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
   Element* e;
   vector<ElementReference>::iterator elem_info = regular_queue.begin();
   for (int i = 0; i < num_comps; i++)
-    for_all_active_elements(e, meshes[i]) {
+    for_all_active_elements(e, meshes[i])
       regular_queue.push_back(ElementReference(e->id, i));
-//       errors[i][e->id] /= norms[i];
-// ??? needed or not ???
-// when norms of 2 components are very different it can help (microwave heating)
-// navier-stokes on different meshes work only without
-    }
 
   //sort
-  std::sort(regular_queue.begin(), regular_queue.end(), compare_elems(errors));
+  std::sort(regular_queue.begin(), regular_queue.end(), CompareElements(errors));
 }

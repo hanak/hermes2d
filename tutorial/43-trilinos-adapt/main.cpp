@@ -199,7 +199,8 @@ int main(int argc, char* argv[])
 
     // calculate error estimate wrt. fine mesh solution
     H1Adapt hp(&space);
-    double err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+    hp.set_solutions(&sln_coarse, &sln_fine);
+    double err_est = hp.calc_error() * 100;
     info("Estimate of error: %g%%  (ndof %d)", err_est, ndof);
     ExactSolution exact(&mesh, fndd);
     error = h1_error(&sln_coarse, &exact) * 100;

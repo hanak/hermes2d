@@ -353,7 +353,8 @@ int main(int argc, char* argv[])
 
       H1Adapt hp(&xvel_space);
       hp.set_biform(0, 0, callback(l2_form));
-      space_err = hp.calc_error(&xvel_crs, &xvel_fine) * 100;
+      hp.set_solutions(&xvel_crs, &xvel_fine);
+      space_err = hp.calc_error() * 100;
       info("L2 error (xvel) %g%%", space_err);
       if (space_err > SPACE_TOL) hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
       else done = true;

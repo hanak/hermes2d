@@ -133,7 +133,8 @@ int main(int argc, char* argv[])
 
     // Calculate error estimate wrt. fine mesh solution
     H1Adapt hp(&space);
-    double err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+    hp.set_solutions(&sln_coarse, &sln_fine);
+    double err_est = hp.calc_error() * 100;
 
     // time measurement
     cpu_time.tick();

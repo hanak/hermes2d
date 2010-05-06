@@ -238,8 +238,9 @@ int main(int argc, char* argv[])
 
     // calculate error estimate wrt. fine mesh solution
     HcurlAdapt hp(&space);
+    hp.set_solutions(&sln_coarse, &sln_fine);
     hp.set_biform(0, 0, callback(hcurl_form_kappa));
-    double err_est_adapt = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+    double err_est_adapt = hp.calc_error() * 100;
     double err_est_hcurl = hcurl_error(&sln_coarse, &sln_fine) * 100;
 
     // time measurement
