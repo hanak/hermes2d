@@ -39,16 +39,17 @@ Adapt::Adapt(const Tuple<Space*>& spaces)
   error_if(num_comps <= 0, "To few components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
   error_if(num_comps >= H2D_MAX_COMPONENTS, "To many components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
 
-  //initialize spaces
-  for(int i = 0; i < num_comps; i++)
-    this->spaces[i] = spaces[i];
-
   // reset values
   memset(errors, 0, sizeof(errors));
   memset(form, 0, sizeof(form));
   memset(ord, 0, sizeof(ord));
-  memset(sln, 0, sizeof(ord));
-  memset(rsln, 0, sizeof(ord));
+  memset(sln, 0, sizeof(sln));
+  memset(rsln, 0, sizeof(rsln));
+  memset(this->spaces, 0, sizeof(this->spaces));
+
+  //initialize spaces
+  for(int i = 0; i < num_comps; i++)
+    this->spaces[i] = spaces[i];
 }
 
 Adapt::~Adapt()

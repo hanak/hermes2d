@@ -404,7 +404,7 @@ int main(int argc, char* argv[])
       else {
         hp.adapt(&selector, THRESHOLD, STRATEGY, MESH_REGULARITY);
         ndofs = assign_dofs(2, &space_T, &space_phi);
-        if (ndofs >= NDOF_STOP) done = true;
+        if (ndofs >= NDOF_STOP) break;
       }
 
       // compute exact solution for comparison with computational results

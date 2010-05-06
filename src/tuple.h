@@ -30,16 +30,17 @@ public:
   //    first++;
   //  }
   //};
+  explicit Tuple() {};
   Tuple(const T& a) { push_back(a); };
-  Tuple(const T& a, const T& b) { push_back(a); push_back(b); };
-  Tuple(const T& a, const T& b, const T& c) { push_back(a); push_back(b); push_back(c); };
-  Tuple(const T& a, const T& b, const T& c, const T& d) { push_back(a); push_back(b); push_back(c); push_back(d); };
-  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); };
-  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); };
-  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); };
-  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); };
-  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h, const T& i) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); };
-  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h, const T& i, const T& j) { push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); push_back(j); };
+  Tuple(const T& a, const T& b) { std::vector<T>::reserve(2); push_back(a); push_back(b); };
+  Tuple(const T& a, const T& b, const T& c) { std::vector<T>::reserve(3); push_back(a); push_back(b); push_back(c); };
+  Tuple(const T& a, const T& b, const T& c, const T& d) { std::vector<T>::reserve(4); push_back(a); push_back(b); push_back(c); push_back(d); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e) { std::vector<T>::reserve(5); push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f) { std::vector<T>::reserve(6); push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g) { std::vector<T>::reserve(7); push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h) { std::vector<T>::reserve(8); push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h, const T& i) { std::vector<T>::reserve(9); push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); };
+  Tuple(const T& a, const T& b, const T& c, const T& d, const T& e, const T& f, const T& g, const T& h, const T& i, const T& j) { std::vector<T>::reserve(10); push_back(a); push_back(b); push_back(c); push_back(d); push_back(e); push_back(f); push_back(g); push_back(h); push_back(i); push_back(j); };
 };
 
 #endif
