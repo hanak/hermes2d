@@ -1,3 +1,12 @@
+#define H2D_REPORT_WARN
+#define H2D_REPORT_INFO
+#define H2D_REPORT_VERBOSE
+#define H2D_REPORT_FILE "application.log"
+#include "hermes2d.h"
+#include "solver_umfpack.h"
+
+using namespace RefinementSelectors;
+
 //  The purpose of this example is to show how to use Trilinos while adapting mesh
 //  Solved by NOX solver, either using Newton's method or JFNK, with or without preconditioning
 //
@@ -9,9 +18,6 @@
 //
 //  Known exact solution, see functions fn() and fndd()
 //
-
-#include "hermes2d.h"
-#include "solver_umfpack.h"
 
 const bool jfnk = true;
 const bool precond = true;
@@ -32,6 +38,12 @@ const CandList CAND_LIST = H2D_HP_ANISO; // Predefined list of element refinemen
                                          // H2D_P_ISO, H2D_P_ANISO, H2D_H_ISO, H2D_H_ANISO, H2D_HP_ISO,
                                          // H2D_HP_ANISO_H, H2D_HP_ANISO_P, H2D_HP_ANISO.
                                          // See the Sphinx tutorial (http://hpfem.org/hermes2d/doc/src/tutorial-2.html#adaptive-h-fem-and-hp-fem) for details.
+const int MESH_REGULARITY = -1;      // Maximum allowed level of hanging nodes:
+                                     // MESH_REGULARITY = -1 ... arbitrary level hangning nodes (default),
+                                     // MESH_REGULARITY = 1 ... at most one-level hanging nodes,
+                                     // MESH_REGULARITY = 2 ... at most two-level hanging nodes, etc.
+                                     // Note that regular meshes are not supported, this is due to
+                                     // their notoriously bad performance.
 const double CONV_EXP = 1.0;      // Default value is 1.0. This parameter influences the selection of
                                   // cancidates in hp-adaptivity. See get_optimal_refinement() for details.
 const double ERR_STOP = 1.0;      // Stopping criterion for adaptivity (rel. error tolerance between the

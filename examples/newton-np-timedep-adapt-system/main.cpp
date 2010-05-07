@@ -1,3 +1,14 @@
+#define H2D_REPORT_WARN
+#define H2D_REPORT_INFO
+#define H2D_REPORT_VERBOSE
+#define H2D_REPORT_FILE "application.log"
+
+#include "hermes2d.h"
+#include "solver_umfpack.h"
+#include <string>
+
+using namespace RefinementSelectors;
+
 /** \addtogroup e_newton_np_timedep_adapt_system Newton Time-dependant System with Adaptivity
  \{
  \brief This example shows how to combine the automatic adaptivity with the Newton's method for a nonlinear time-dependent PDE system.
@@ -37,20 +48,7 @@
   - BC 2: \f$\phi = VOLTAGE\f$
   - BC 3: \f$\phi = 0\f$
   - BC 1: \f$\frac{d\phi}{dn} = 0\f$
- \dontinclude hermes2d.h
- \dontinclude solver_umfpack.h
  */
-
-#define H2D_REPORT_WARN
-#define H2D_REPORT_INFO
-#define H2D_REPORT_VERBOSE
-#define H2D_REPORT_FILE "application.log"
-
-#include "hermes2d.h"
-#include "solver_umfpack.h"
-#include <string>
-
-using namespace RefinementSelectors;
 
 #define SIDE_MARKER 1
 #define TOP_MARKER 2
