@@ -95,7 +95,7 @@ double PythonAdapt::calc_error_n(int num, ...) {
 
   //call error evaluation
   adapt_instance->set_solutions(sln, rsln);
-  double error = adapt_instance->calc_error(H2D_TOTAL_ERROR_REL | H2D_ELEM_ERROR_ABS_SQ);
+  double error = adapt_instance->calc_error(H2D_TOTAL_ERROR_REL | H2D_ELEMENT_ERROR_ABS);
   return error;
 }
 

@@ -34,14 +34,14 @@ H2D_API_USED_TEMPLATE(Tuple<Solution*>); ///< Instantiated template. It is used 
 #define H2D_TOTAL_ERROR_ABS  0x01  ///< A flag which defines interpretation of the total error.
                                    ///  The total error is absolute, i.e., it is an integral over squares of differencies.
                                    ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_TOTAL_ERROR_REL.
-#define H2D_ELEM_ERROR_REL_SQ 0x00 ///< A flag which defines interpretation of of an error of an element.
+#define H2D_ELEMENT_ERROR_REL 0x00 ///< A flag which defines interpretation of of an error of an element.
                                    ///  An error of an element is a square of an error divided by a square of a norm of a corresponding component.
                                    ///  When norms of 2 components are very different (e.g. microwave heating), it can help.
-                                   ///  Navier-stokes on different meshes work only when absolute error (see ::H2D_ELEM_ERROR_ABS_SQ) is used.
-                                   ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_ELEM_ERROR_ABS_SQ.
-#define H2D_ELEM_ERROR_ABS_SQ 0x10 ///< A flag which defines interpretation of of an error of an element.
+                                   ///  Navier-stokes on different meshes work only when absolute error (see ::H2D_ELEMENT_ERROR_ABS) is used.
+                                   ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_ELEMENT_ERROR_ABS.
+#define H2D_ELEMENT_ERROR_ABS 0x10 ///< A flag which defines interpretation of of an error of an element.
                                    ///  An error of an element is a square of an asolute error, i.e., it is an integral over squares of differencies.
-                                   ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_ELEM_ERROR_REL_SQ.
+                                   ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_ELEMENT_ERROR_REL.
 
 /// Error evaluation and adaptivity loop.
 /** The class provides basic funcionality necessary to adaptively refine elements.
@@ -76,9 +76,9 @@ public:
 
   /// Calculates error between a coarse solution and a reference solution and sorts components according to the error.
   /** If overrided, this method has to initialize errors (Array::errors), sum of errors (Array::error_sum), norms of components (Array::norm), number of active elements (Array::num_act_elems). Also, it has to fill the regular queue through the method fill_regular_queue().
-   *  \param[in] error_flags Flags which calculates the error. It can be a combination of ::H2D_TOTAL_ERROR_REL, ::H2D_TOTAL_ERROR_ABS, ::H2D_ELEM_ERROR_REL_SQ, ::H2D_ELEM_ERROR_ABS_SQ.
+   *  \param[in] error_flags Flags which calculates the error. It can be a combination of ::H2D_TOTAL_ERROR_REL, ::H2D_TOTAL_ERROR_ABS, ::H2D_ELEMENT_ERROR_REL, ::H2D_ELEMENT_ERROR_ABS.
    *  \return The total error. Interpretation of the error is specified by the parameter error_flags. */
-  virtual double calc_error(unsigned int error_flags = H2D_TOTAL_ERROR_REL | H2D_ELEM_ERROR_ABS_SQ);
+  virtual double calc_error(unsigned int error_flags = H2D_TOTAL_ERROR_REL | H2D_ELEMENT_ERROR_ABS);
 
   /// Refines elements based on results from calc_error().
   /** \param[in] refinement_selector A point to a selector which will select a refinement.
@@ -102,11 +102,11 @@ public:
     ElementReference(int id = -1, int comp = -1) : id(id), comp(comp) {}; ///< Contructor. It creates an invalid element reference.
   };
 
-  /// Returns an error of an element.
+  /// Returns a squared error of an element.
   /** \param[in] A component index.
    *  \param[in] An element index.
-   *  \return Error. Meaning of the error depends on parameters of a function calc_error(). */
-  double get_element_error(int component, int id) const { error_if(!have_errors, "Element errors have to be calculated first, call calc_error()."); return errors[component][id]; };
+   *  \return Squared error. Meaning of the error depends on parameters of a function calc_error(). */
+  double get_element_error_squared(int component, int id) const { error_if(!have_errors, "Element errors have to be calculated first, call calc_error()."); return errors_squared[component][id]; };
 
   /// Returns regular queue of elements
   /** \return A regular queue. */
@@ -175,9 +175,8 @@ protected: // spaces & solutions
   Solution* rsln[H2D_MAX_COMPONENTS];  ///< Reference solutions. A first unused index in equal to an attribute Adapt::num_comp.
 
 protected: // element error arrays
-  double* errors[H2D_MAX_COMPONENTS]; ///< Errors of elements. Meaning of the error depeds on flags used when the method calc_error() was calls. Initialized in the method calc_error().
-  double  errors_sum; ///< Sum of errors in the array Adapt::errors. Used by a method adapt() in some strategies.
-  double  norms[H2D_MAX_COMPONENTS]; ///< Norms of components.
+  double* errors_squared[H2D_MAX_COMPONENTS]; ///< Errors of elements. Meaning of the error depeds on flags used when the method calc_error() was calls. Initialized in the method calc_error().
+  double  errors_squared_sum; ///< Sum of errors in the array Adapt::errors. Used by a method adapt() in some strategies.
 
 protected: //forms and error evaluation
   biform_val_t form[H2D_MAX_COMPONENTS][H2D_MAX_COMPONENTS]; ///< Bilinear forms to calculate error
@@ -202,10 +201,22 @@ protected: //forms and error evaluation
                     MeshFunction *sln1, MeshFunction *sln2, MeshFunction *rsln1, MeshFunction *rsln2,
                     RefMap *rv1,        RefMap *rv2,        RefMap *rrv1,        RefMap *rrv2);
 
-  /* DOCUMENT TAG */
+  /// Evaluates a square of a norm of an active element in the reference solution among a given pair of components.
+  /** The method uses a bilinear forms to calculate the norm. This is done by supplying a v1 and v2 at integration points to the bilinear form,
+   *  where v1 and v2 are values of reference solutions of the first and the second component respectively.
+   *  \param[in] bi_fn A bilinear form.
+   *  \param[in] bi_ord A bilinear form which is used to calculate the order of a quadrature.
+   *  \param[in] rsln1 A reference solution corresponding to the first component.
+   *  \param[in] rsln2 A reference solution corresponding to the second component.
+   *  \param[in] rrv1 A reference map of a reference solution rsln1.
+   *  \param[in] rrv2 A reference map of a reference solution rsln2.
+   *  \return A square of a norm. */
   scalar eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
-                   MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2); ///< Evalutes norm.
+                   MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2);
 
+  /// Prepares values used in eval_error().
+  /** This method subtracts a value of a function expansion of a reference solution from a (coarse) solution at a given itegration point.
+   *  \note This method is a safe version of */
   virtual void prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) = 0; ///< Prepare a value for evaluation of error. The results should be stored to err_sln.
 
   virtual void fill_regular_queue(Mesh** meshes, Mesh** ref_meshes); ///< Builds a queue of elements to be examined, i.e., inits Adapt::standard_queue. This sorted by error descending. Assumes that Adapt::errors is initialized.

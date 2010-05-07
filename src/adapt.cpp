@@ -40,7 +40,7 @@ Adapt::Adapt(const Tuple<Space*>& spaces)
   error_if(num_comps >= H2D_MAX_COMPONENTS, "To many components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
 
   // reset values
-  memset(errors, 0, sizeof(errors));
+  memset(errors_squared, 0, sizeof(errors_squared));
   memset(form, 0, sizeof(form));
   memset(ord, 0, sizeof(ord));
   memset(sln, 0, sizeof(sln));
@@ -55,8 +55,7 @@ Adapt::Adapt(const Tuple<Space*>& spaces)
 Adapt::~Adapt()
 {
   for (int i = 0; i < num_comps; i++)
-    if (errors[i] != NULL)
-      delete [] errors[i];
+    delete [] errors_squared[i];
 }
 
 //// adapt /////////////////////////////////////////////////////////////////////////////////////////
@@ -83,20 +82,19 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
     for(int l = 0; l < num_comps; l++)
       idx[j][l] = -1; // element not refined
 
-  double err0 = 1000.0;
-  double processed_error = 0.0;
+  double err0_squared = 1000.0;
+  double processed_error_squared = 0.0;
 
   vector<ElementToRefine> elem_inx_to_proc; //list of indices of elements that are going to be processed
   elem_inx_to_proc.reserve(num_act_elems);
 
   //adaptivity loop
-  double error_threshod = -1; //an error threshold that breaks the adaptivity loop in a case of strategy 1
+  double error_squared_threshod = -1; //an error threshold that breaks the adaptivity loop in a case of strategy 1
   int num_exam_elem = 0; //a number of examined elements
   int num_ignored_elem = 0; //a number of ignored elements
   int num_not_changed = 0; //a number of element that were not changed
   int num_priority_elem = 0; //a number of elements that were processed using priority queue
 
-  double error_threshold = 0; //error threshold for stategy 1
   bool first_regular_element = true; //true if first regular element was not processed yet
   int inx_regular_element = 0;
   while (inx_regular_element < num_act_elems || !priority_queue.empty())
@@ -120,7 +118,7 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
     num_exam_elem++;
 
     //get info linked with the element
-    double err = errors[comp][id];
+    double err_squared = errors_squared[comp][id];
     Mesh* mesh = meshes[comp];
     Element* e = mesh->get_element(id);
 
@@ -129,24 +127,24 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
       if (inx_element >= 0) {
         //prepare error threshold for strategy 1
         if (first_regular_element) {
-          error_threshod = thr * err;
+          error_squared_threshod = thr * err_squared;
           first_regular_element = false;
         }
 
         // first refinement strategy:
         // refine elements until prescribed amount of error is processed
         // if more elements have similar error refine all to keep the mesh symmetric
-        if ((strat == 0) && (processed_error > sqrt(thr) * errors_sum) && fabs((err - err0)/err0) > 1e-3) break;
+        if ((strat == 0) && (processed_error_squared > sqrt(thr) * errors_squared_sum) && fabs((err_squared - err0_squared)/err0_squared) > 1e-3) break;
 
         // second refinement strategy:
         // refine all elements whose error is bigger than some portion of maximal error
-        if ((strat == 1) && (err < error_threshod)) break;
+        if ((strat == 1) && (err_squared < error_squared_threshod)) break;
 
-        if ((strat == 2) && (err < thr)) break;
+        if ((strat == 2) && (err_squared < thr)) break;
 
         if ((strat == 3) &&
-          ( (err < error_threshod) ||
-          ( processed_error > 1.5 * to_be_processed )) ) break;        
+          ( (err_squared < error_squared_threshod) ||
+          ( processed_error_squared > 1.5 * to_be_processed )) ) break;
       }
 
       // get refinement suggestion
@@ -158,8 +156,8 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
       if (refined && can_adapt_element(mesh, e, elem_ref) ) {
         idx[id][comp] = (int)elem_inx_to_proc.size();
         elem_inx_to_proc.push_back(elem_ref);
-        err0 = err;
-        processed_error += err;
+        err0_squared = err_squared;
+        processed_error_squared += err_squared;
       }
       else {
         debug_log("Element (id:%d, comp:%d) not changed", e->id, comp);
@@ -348,7 +346,6 @@ void Adapt::apply_refinement(const ElementToRefine& elem_ref) {
 
 void Adapt::unrefine(double thr)
 {
-
   if (!have_errors)
     error("Element errors have to be calculated first, see calc_error().");
 
@@ -370,25 +367,25 @@ void Adapt::unrefine(double thr)
 
       if (found)
       {
-        double sum1 = 0.0, sum2 = 0.0;
+        double sum1_squared = 0.0, sum2_squared = 0.0;
         int max1 = 0, max2 = 0;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < H2D_MAX_ELEMENT_SONS; i++)
           if (e->sons[i] != NULL)
         {
-          sum1 += errors[0][e->sons[i]->id];
-          sum2 += errors[1][e->sons[i]->id];
+          sum1_squared += errors_squared[0][e->sons[i]->id];
+          sum2_squared += errors_squared[1][e->sons[i]->id];
           int oo = spaces[0]->get_element_order(e->sons[i]->id);
           if (oo > max1) max1 = oo;
           oo = spaces[1]->get_element_order(e->sons[i]->id);
           if (oo > max2) max2 = oo;
         }
-        if ((sum1 < thr * errors[regular_queue[0].comp][regular_queue[0].id]) &&
-             (sum2 < thr * errors[regular_queue[0].comp][regular_queue[0].id]))
+        if ((sum1_squared < thr * errors_squared[regular_queue[0].comp][regular_queue[0].id]) &&
+             (sum2_squared < thr * errors_squared[regular_queue[0].comp][regular_queue[0].id]))
         {
           mesh[0]->unrefine_element(e->id);
           mesh[1]->unrefine_element(e->id);
-          errors[0][e->id] = sum1;
-          errors[1][e->id] = sum2;
+          errors_squared[0][e->id] = sum1_squared;
+          errors_squared[1][e->id] = sum2_squared;
           spaces[0]->set_element_order(e->id, max1);
           spaces[1]->set_element_order(e->id, max2);
           k++; // number of unrefined elements
@@ -398,7 +395,7 @@ void Adapt::unrefine(double thr)
     for_all_active_elements(e, mesh[0])
     {
       for (int i = 0; i < 2; i++)
-        if (errors[i][e->id] < thr/4 * errors[regular_queue[0].comp][regular_queue[0].id])
+        if (errors_squared[i][e->id] < thr/4 * errors_squared[regular_queue[0].comp][regular_queue[0].id])
       {
         int oo = H2D_GET_H_ORDER(spaces[i]->get_element_order(e->id));
         spaces[i]->set_element_order(e->id, std::max(oo - 1, 1));
@@ -414,26 +411,26 @@ void Adapt::unrefine(double thr)
       for_all_inactive_elements(e, mesh[m])
       {
         bool found = true;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < H2D_MAX_ELEMENT_SONS; i++)
           if (e->sons[i] != NULL && ((!e->sons[i]->active) || (e->sons[i]->is_curved())))
         { found = false;  break; }
 
         if (found)
         {
-          double sum = 0.0;
+          double sum_squared = 0.0;
           int max = 0;
           for (int i = 0; i < 4; i++)
             if (e->sons[i] != NULL)
           {
-            sum += errors[m][e->sons[i]->id];
+            sum_squared += errors_squared[m][e->sons[i]->id];
             int oo = spaces[m]->get_element_order(e->sons[i]->id);
             if (oo > max) max = oo;
           }
-          if ((sum < thr * errors[regular_queue[0].comp][regular_queue[0].id]))
+          if ((sum_squared < thr * errors_squared[regular_queue[0].comp][regular_queue[0].id]))
           //if ((sum < 0.1 * thr))
           {
             mesh[m]->unrefine_element(e->id);
-            errors[m][e->id] = sum;
+            errors_squared[m][e->id] = sum_squared;
             spaces[m]->set_element_order(e->id, max);
             k++; // number of unrefined elements
           }
@@ -441,7 +438,7 @@ void Adapt::unrefine(double thr)
       }
       for_all_active_elements(e, mesh[m])
       {
-        if (errors[m][e->id] < thr/4 * errors[regular_queue[0].comp][regular_queue[0].id])
+        if (errors_squared[m][e->id] < thr/4 * errors_squared[regular_queue[0].comp][regular_queue[0].id])
         {
           int oo = H2D_GET_H_ORDER(spaces[m]->get_element_order(e->id));
           spaces[m]->set_element_order(e->id, std::max(oo - 1, 1));
@@ -519,9 +516,12 @@ scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
   Func<scalar>* v1 = init_fn(rsln1, rrv1, order);
   Func<scalar>* v2 = init_fn(rsln2, rrv2, order);
 
+  err1->subtract(*v1);
+  err2->subtract(*v2);
+
   for (int i = 0; i < np; i++) {
-    prepare_eval_error_value(i, *err1, *v1);
-    prepare_eval_error_value(i, *err2, *v2);
+    //prepare_eval_error_value(i, *err1, *v1);
+    //prepare_eval_error_value(i, *err2, *v2);
   }
 
   scalar res = bi_fn(np, jwt, err1, err2, e, NULL);
@@ -604,17 +604,16 @@ double Adapt::calc_error(unsigned int error_flags) {
     num_act_elems += sln[i]->get_mesh()->get_num_active_elements();
 
     int max_element_id = meshes[i]->get_max_element_id();
-    if (errors[i] != NULL) delete [] errors[i];
-    try { errors[i] = new double[max_element_id]; }
+    delete[] errors_squared[i];
+    try { errors_squared[i] = new double[max_element_id]; }
     catch(bad_alloc&) { error("Unable to allocate space for errors of the component %d.", i); };
-    memset(errors[i], 0, sizeof(double) * max_element_id);
+    memset(errors_squared[i], 0, sizeof(double) * max_element_id);
   }
 
   //prepare space for norms
-  double total_norm = 0.0;
-  AUTOLA_OR(double, norms, num_comps);
-  memset(norms, 0, num_comps * sizeof(double));
-  double total_error = 0.0;
+  double norms_squared_sum = 0.0;
+  std::vector<double> norms_squared(num_comps, 0.0);
+  double errors_squared_abs_sum = 0.0;
 
   //calculate error
   Element** ee;
@@ -629,21 +628,21 @@ double Adapt::calc_error(unsigned int error_flags) {
       {
         RefMap* rmj = sln[j]->get_refmap();
         RefMap* rrmj = rsln[j]->get_refmap();
-        double e, t;
+        double error_squared, norm_squared;
         if (form[i][j] != NULL)
         {
           #ifndef H2D_COMPLEX
-          e = fabs(eval_error(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj));
-          t = fabs(eval_norm(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj));
+          error_squared = fabs(eval_error(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj));
+          norm_squared = fabs(eval_norm(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj));
           #else
-          e = std::abs(eval_error(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj));
-          t = std::abs(eval_norm(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj));
+          error_squared = std::abs(eval_error(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj));
+          norm_squared = std::abs(eval_norm(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj));
           #endif
 
-          norms[i] += t;
-          total_norm  += t;
-          total_error += e;
-          errors[i][ee[i]->id] += e;
+          norms_squared[i] += norm_squared;
+          norms_squared_sum += norm_squared;
+          errors_squared_abs_sum += error_squared;
+          errors_squared[i][ee[i]->id] += error_squared;
         }
       }
     }
@@ -651,20 +650,20 @@ double Adapt::calc_error(unsigned int error_flags) {
   trav.finish();
 
   //make the error relative
-  if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEM_ERROR_REL_SQ) {
-    errors_sum = 0;
+  if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEMENT_ERROR_REL) {
+    errors_squared_sum = 0.0;
     for (int i = 0; i < num_comps; i++) {
-      double norm_sq = norms[i];
-      double* error_sq_comp = errors[i];
+      double norm_squared = norms_squared[i];
+      double* errors_squared_comp = errors_squared[i];
       Element* e;
       for_all_active_elements(e, meshes[i]) {
-        error_sq_comp[e->id] /= norm_sq;
-        errors_sum += error_sq_comp[e->id];
+        errors_squared_comp[e->id] /= norm_squared;
+        errors_squared_sum += errors_squared_comp[e->id];
       }
     }
   }
-  else if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEM_ERROR_ABS_SQ) {
-    errors_sum = total_error;
+  else if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEMENT_ERROR_ABS) {
+    errors_squared_sum = errors_squared_abs_sum;
   }
   else
     error("Unknown element error type (0x%x).", error_flags & H2D_ELEMENT_ERROR_MASK);
@@ -675,11 +674,11 @@ double Adapt::calc_error(unsigned int error_flags) {
   //return error value
   have_errors = true;
   if ((error_flags & H2D_TOTAL_ERROR_MASK) == H2D_TOTAL_ERROR_ABS)
-    return sqrt(total_error);
+    return sqrt(errors_squared_abs_sum);
   else if ((error_flags & H2D_TOTAL_ERROR_MASK) == H2D_TOTAL_ERROR_REL)
-    return sqrt(total_error / total_norm);
+    return sqrt(errors_squared_abs_sum / norms_squared_sum);
   else {
-    error("Unknown return error type (0x%x).", error_flags & H2D_TOTAL_ERROR_MASK);
+    error("Unknown total error type (0x%x).", error_flags & H2D_TOTAL_ERROR_MASK);
     return -1.0;
   }
 }
@@ -703,5 +702,5 @@ void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
       regular_queue.push_back(ElementReference(e->id, i));
 
   //sort
-  std::sort(regular_queue.begin(), regular_queue.end(), CompareElements(errors));
+  std::sort(regular_queue.begin(), regular_queue.end(), CompareElements(errors_squared));
 }
