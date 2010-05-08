@@ -36,8 +36,8 @@ Adapt::Adapt(const Tuple<Space*>& spaces)
   : num_comps(spaces.size()), num_act_elems(-1)
   , have_solutions(false), have_errors(false) {
   // check validity
-  error_if(num_comps <= 0, "To few components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
-  error_if(num_comps >= H2D_MAX_COMPONENTS, "To many components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
+  error_if(num_comps <= 0, "Too few components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
+  error_if(num_comps >= H2D_MAX_COMPONENTS, "Too many components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
 
   // reset values
   memset(errors_squared, 0, sizeof(errors_squared));
@@ -265,7 +265,7 @@ void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefi
           // change currently processed refinement
           if (elem_ref.split != selected_refinement) {
             elem_ref.split = selected_refinement;
-            refinement_selector->update_shared_mesh_orders(current_elem, current_quad_order, elem_ref.split, elem_ref.p, suggested_orders);
+            refinement_selector->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref.split, elem_ref.p, suggested_orders);
           }
 
           // change other refinements
@@ -274,13 +274,13 @@ void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefi
             ElementToRefine& elem_ref_ii = elems_to_refine[ii];
             if (elem_ref_ii.split != selected_refinement) {
               elem_ref_ii.split = selected_refinement;
-              refinement_selector->update_shared_mesh_orders(current_elem, current_quad_order, elem_ref_ii.split, elem_ref_ii.p, suggested_orders);
+              refinement_selector->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref_ii.split, elem_ref_ii.p, suggested_orders);
             }
           }
           else { // element (of the other comp.) not refined at all: assign refinement
             ElementToRefine elem_ref_new(elem_ref.id, j);
             elem_ref_new.split = selected_refinement;
-            refinement_selector->update_shared_mesh_orders(current_elem, current_quad_order, elem_ref_new.split, elem_ref_new.p, suggested_orders);
+            refinement_selector->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref_new.split, elem_ref_new.p, suggested_orders);
             elems_to_refine.push_back(elem_ref_new);
           }
         }

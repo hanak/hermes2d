@@ -18,27 +18,22 @@
 
 #include <ostream>
 #include "../range.h"
+#include "order_permutator.h"
 #include "selector.h"
 
-#define H2DRS_ASSUMED_MAX_CANDS 512 ///< A maximum estimated number of candidates. Used for purpose of reserving a space.
-
-#define H2D_NUM_MODES 2 ///< A number of modes.
+#define H2DRS_ASSUMED_MAX_CANDS 512 ///< An estimated maximum number of candidates. Used for purpose of reserving space. \ingroup g_selectors
 
 //TODO: find out why 20 used used, should'n be there 2*(H2DRS_MAX_ORDER+1)
-#define H2DRS_INTR_GIP_ORDER 20 ///< Constant GIP order used by during projection to integrate.
-#define H2DRS_MAX_ORDER_INC 2 ///< Maximum increase of order in candidates.
+#define H2DRS_INTR_GIP_ORDER 20 ///< An integration order used to integrate while evaluating a candidate. \ingroup g_selectors
+#define H2DRS_MAX_ORDER_INC 2 ///< Maximum increase of an order in candidates. \ingroup g_selectors
 
-#define H2DRS_SCORE_DIFF_ZERO 1E-13 ///< A threshold of difference between scores which is considered zero.
+#define H2DRS_SCORE_DIFF_ZERO 1E-13 ///< A threshold of difference between scores. Anything below this values is considered zero. \ingroup g_selectors
 
-#define H2D_FN_VALUE  0 ///< Index of a function value.
-#define H2D_FN_DX     1 ///< Index of df/dx.
-#define H2D_FN_DY     2 ///< Index of df/dy.
-
-#define H2DRS_ORDER_ANY -1 ///< Any order.
+#define H2DRS_ORDER_ANY -1 ///< Any order. Used as a wildcard to indicate that a given order can by any valid order. \ingroup g_selectors
 
 namespace RefinementSelectors {
 
-  /// Predefined list of candidates.
+  /// Predefined list of candidates. \ingroup g_selectors
   enum CandList {
     H2D_P_ISO, ///< P-candidates only. Orders are modified uniformly.
     H2D_P_ANISO, ///< P-candidates only. Orders are modified non-uniformly.
@@ -50,28 +45,21 @@ namespace RefinementSelectors {
     H2D_HP_ANISO ///< H-, ANISO- and P-candidates. Orders are modified non-uniformly.
   };
 
-  extern H2D_API const char* get_cand_list_str(const CandList cand_list); ///< Returns string representation of the enum. Used for debugging and output purposes.
-  extern H2D_API bool is_hp(const CandList cand_list); ///< Returns true if the candidate list contain candidates that are HP.
-  extern H2D_API bool is_p_aniso(const CandList cand_list); ///< Returns true if the candidate list contain candidates with anisotropic change of orders.
+  /// Returns a string representation of a predefined candidate list. \ingroup g_selectors
+  /** Used for debugging and output purposes.
+   *  \param cand_list A predefined list of candidates.
+   *  \return A string representation of the enum value. */
+  extern H2D_API const char* get_cand_list_str(const CandList cand_list);
 
-  class H2D_API OrderPermutator { ///< Permutates orders.
-  protected:
-    int order_h, order_v; ///< Current order
-    int start_order_h, start_order_v; ///< Start orders
-    int end_order_h, end_order_v; ///< End orders
-    bool iso_p; /// True, if increase is iso.
-    int* tgt_quad_order; ///< Target quad order to which the order is written automatically. NULL if none.
-  public:
-    OrderPermutator () {};
-    OrderPermutator (int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order = NULL);
-    bool next(); ///< Returns false if there is not next combination.
-    void reset(); ///< Resets permutator to the start order.
-    int get_order_h() const { return order_h; }; ///< Returns horizontal order.
-    int get_order_v() const { return order_v; }; ///< Returns vertical order.
-    int get_quad_order() const { return H2D_MAKE_QUAD_ORDER(order_h, order_v); }; ///< Returns quad order.
-    int get_start_quad_order() const { return H2D_MAKE_QUAD_ORDER(start_order_h, start_order_v); }; ///< Returns start order.
-    int get_end_quad_order() const { return H2D_MAKE_QUAD_ORDER(end_order_h, end_order_v); }; ///< Returns start order.
-  };
+  /// Returns true if a predefined candidate list may contain candidates that are HP. \ingroup g_selectors
+  /** \param cand_list A predefined list of candidates.
+   *  \return True if a predefined candidate list may contain candidates that are HP. */
+  extern H2D_API bool is_hp(const CandList cand_list);
+
+  /// Returns true if a predefined candidate list may contain candidates with an anisotropic change of orders. \ingroup g_selectors
+  /** \param cand_list A predefined list of candidates.
+   *  \return True if a predefined candidate list may contain candidates with an anisotropic change of orders. */
+  extern H2D_API bool is_p_aniso(const CandList cand_list);
 
   class H2D_API OptimumSelector : public Selector { ///< Selector that chooses an optimal candidates based on error decrease per a new DOF.
   public: //candidates
@@ -178,7 +166,7 @@ namespace RefinementSelectors {
     OptimumSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); /// Contructor. Parameters 'vertex_order' and 'edge_bubble_order' are due to the fact that shapesets return valid index even though given shape is invalid.
     virtual ~OptimumSelector() {};
     virtual bool select_refinement(Element* element, int quad_order, Solution* rsln, ElementToRefine& refinement); ///< Selects refinement.
-    virtual void update_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.
+    virtual void generate_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.
   };
 
   extern H2D_API std::ostream& operator<<(std::ostream& stream, const OptimumSelector::Cand& cand); ///< Flushes contents of a candidate to a stream. Useful for debug print-outs.

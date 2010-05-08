@@ -22,32 +22,34 @@
 #include "integrals_h1.h"
 #include "ref_selectors/selector.h"
 
+/// \defgroup g_adapt Adaptivity
+
 #define H2D_MAX_COMPONENTS 10 ///< A maximum number of components.
 
 H2D_API_USED_TEMPLATE(Tuple<Space*>); ///< Instantiated template. It is used to create a clean Windows DLL interface.
 H2D_API_USED_TEMPLATE(Tuple<Solution*>); ///< Instantiated template. It is used to create a clean Windows DLL interface.
 
 // Constant used by Adapt::calc_eror().
-#define H2D_TOTAL_ERROR_REL  0x00  ///< A flag which defines interpretation of the total error.
+#define H2D_TOTAL_ERROR_REL  0x00  ///< A flag which defines interpretation of the total error. \ingroup g_adapt
                                    ///  The total error is divided by the norm and therefore it should be in a range [0, 1].
                                    ///  \note Used by Adapt::calc_error().. This flag is mutually exclusive with ::H2D_TOTAL_ERROR_ABS.
-#define H2D_TOTAL_ERROR_ABS  0x01  ///< A flag which defines interpretation of the total error.
+#define H2D_TOTAL_ERROR_ABS  0x01  ///< A flag which defines interpretation of the total error. \ingroup g_adapt
                                    ///  The total error is absolute, i.e., it is an integral over squares of differencies.
                                    ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_TOTAL_ERROR_REL.
-#define H2D_ELEMENT_ERROR_REL 0x00 ///< A flag which defines interpretation of of an error of an element.
+#define H2D_ELEMENT_ERROR_REL 0x00 ///< A flag which defines interpretation of an error of an element. \ingroup g_adapt
                                    ///  An error of an element is a square of an error divided by a square of a norm of a corresponding component.
                                    ///  When norms of 2 components are very different (e.g. microwave heating), it can help.
                                    ///  Navier-stokes on different meshes work only when absolute error (see ::H2D_ELEMENT_ERROR_ABS) is used.
                                    ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_ELEMENT_ERROR_ABS.
-#define H2D_ELEMENT_ERROR_ABS 0x10 ///< A flag which defines interpretation of of an error of an element.
+#define H2D_ELEMENT_ERROR_ABS 0x10 ///< A flag which defines interpretation of of an error of an element. \ingroup g_adapt
                                    ///  An error of an element is a square of an asolute error, i.e., it is an integral over squares of differencies.
                                    ///  \note Used by Adapt::calc_error(). This flag is mutually exclusive with ::H2D_ELEMENT_ERROR_REL.
 
-/// Error evaluation and adaptivity loop.
-/** The class provides basic funcionality necessary to adaptively refine elements.
+/// Evaluation of an error between a (coarse) solution and a refernece solution and adaptivity. \ingroup g_adapt
+/** The class provides basic functionality necessary to adaptively refine elements.
  *  Given a reference solution and a coarse solution, it calculates error estimates
  *  and it acts as a container for the calculated errors.
- *  The class has to be inherited.
+ *  The class has to be inherited in order to be used.
  */
 class H2D_API Adapt
 {
@@ -81,9 +83,11 @@ public:
   virtual double calc_error(unsigned int error_flags = H2D_TOTAL_ERROR_REL | H2D_ELEMENT_ERROR_ABS);
 
   /// Refines elements based on results from calc_error().
-  /** \param[in] refinement_selector A point to a selector which will select a refinement.
+  /** The behavior of adaptivity can be controlled through methods should_ignore_element() and can_adapt_element()
+   *  which are inteteded to be overriden if neccessary.
+   *  \param[in] refinement_selector A point to a selector which will select a refinement.
    *  \param[in] thr A threshold. The meaning of the threshold is defined by the parameter strat.
-   *  \param[in] strat A strategry. Possible values are 0, 1, 2, and 3.
+   *  \param[in] strat A strategy. It specifies a stop condition which quits processing elements in the Adapt::regular_queue. Possible values are 0, 1, 2, and 3.
    *  \param[in] regularize Regularizing of a mesh.
    *  \param[in] same_order True if all element have to have same orders after all refinements are applied.
    *  \param[in] to_be_processed Error which has to be processed. Used in strategy number 3.
@@ -92,14 +96,16 @@ public:
              int regularize = -1,
              bool same_orders = false, double to_be_processed = 0.0);
 
-  /// Unrefines the elements with the smallest error
+  /// Unrefines the elements with the smallest error.
+  /** \note This method is provided just for backward compatibility reasons. Currently, it is not used by the library.
+   *  \param[in] thr A stop condition relative error threshold. */
   void unrefine(double thr);
 
   /// A reference to an element.
   struct ElementReference {
     int id; ///< An element ID. Invalid if below 0.
     int comp; ///< A component which this element belongs to. Invalid if below 0.
-    ElementReference(int id = -1, int comp = -1) : id(id), comp(comp) {}; ///< Contructor. It creates an invalid element reference.
+    ElementReference(int id = -1, int comp = -1) : id(id), comp(comp) {}; ///< Constructor. It creates an invalid element reference.
   };
 
   /// Returns a squared error of an element.
@@ -170,20 +176,20 @@ protected: //object state
 
 protected: // spaces & solutions
   const int num_comps; ///< A number of components.
-  Space* spaces[H2D_MAX_COMPONENTS]; ///< Spaces. A first unused index in equal to an attribute Adapt::num_comp.
-  Solution* sln[H2D_MAX_COMPONENTS]; ///< Coarse solution. A first unused index in equal to an attribute Adapt::num_comp.
-  Solution* rsln[H2D_MAX_COMPONENTS];  ///< Reference solutions. A first unused index in equal to an attribute Adapt::num_comp.
+  Space* spaces[H2D_MAX_COMPONENTS]; ///< Spaces. A first unused index in equal to an attribute Adapt::num_comps.
+  Solution* sln[H2D_MAX_COMPONENTS]; ///< Coarse solution. A first unused index in equal to an attribute Adapt::num_comps.
+  Solution* rsln[H2D_MAX_COMPONENTS];  ///< Reference solutions. A first unused index in equal to an attribute Adapt::num_comps.
 
 protected: // element error arrays
   double* errors_squared[H2D_MAX_COMPONENTS]; ///< Errors of elements. Meaning of the error depeds on flags used when the method calc_error() was calls. Initialized in the method calc_error().
-  double  errors_squared_sum; ///< Sum of errors in the array Adapt::errors. Used by a method adapt() in some strategies.
+  double  errors_squared_sum; ///< Sum of errors in the array Adapt::errors_squared. Used by a method adapt() in some strategies.
 
 protected: //forms and error evaluation
   biform_val_t form[H2D_MAX_COMPONENTS][H2D_MAX_COMPONENTS]; ///< Bilinear forms to calculate error
   biform_ord_t ord[H2D_MAX_COMPONENTS][H2D_MAX_COMPONENTS]; ///< Bilinear forms to calculate error
 
   /// Evaluates a square of an absolute error of an active element among a given pair of components.
-  /** The method uses a bilinear forms to calculate the error. This is done by supplying a differencies (f1 - v1) and (f2 - v2) at integration points to the bilinear form,
+  /** The method uses a bilinear forms to calculate the error. This is done by supplying a differences (f1 - v1) and (f2 - v2) at integration points to the bilinear form,
    *  where f1 and f2 are values of (coarse) solutions of the first and the second component respectively,
    *  v1 and v2 are values of reference solutions of the first and the second component respectively.
    *  \param[in] bi_fn A bilinear form.
@@ -214,21 +220,27 @@ protected: //forms and error evaluation
   scalar eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
                    MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2);
 
-  /// Prepares values used in eval_error().
-  /** This method subtracts a value of a function expansion of a reference solution from a (coarse) solution at a given itegration point.
-   *  \note This method is a safe version of */
-  virtual void prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) = 0; ///< Prepare a value for evaluation of error. The results should be stored to err_sln.
-
-  virtual void fill_regular_queue(Mesh** meshes, Mesh** ref_meshes); ///< Builds a queue of elements to be examined, i.e., inits Adapt::standard_queue. This sorted by error descending. Assumes that Adapt::errors is initialized.
+  /// Builds an ordered queue of elements that are be examined.
+  /** The method fills Adapt::standard_queue by elements sorted accordin to their error descending.
+   *  The method assumes that Adapt::errors_squared contains valid values.
+   *  If a special order of elements is requested, this method has to be overriden.
+   *  /param[in] meshes An array of pointers to meshes of a (coarse) solution. An index into the array is an index of a component.
+   *  /param[in] meshes An array of pointers to meshes of a reference solution. An index into the array is an index of a component. */
+  virtual void fill_regular_queue(Mesh** meshes, Mesh** ref_meshes);
 
 private: 
-  class CompareElements { ///< Functor that compares elements. Used to sort elements according to an error using an external array.
+  /// A functor that compares elements accoring to their error. Used by std::sort().
+  class CompareElements {
   private:
-    double** errors;
+    double** errors_squared; ///< A 2D array of squared errors: the first index is an index of component, the second index is an element ID.
   public:
-    CompareElements(double** errors): errors(errors) {};
+    CompareElements(double** errors_squared): errors_squared(errors_squared) {}; ///< Constructor.
+    /// Compares two elements.
+    /** \param[in] e1 A reference to the first element.
+     *  \param[in] e1 A reference to the second element.
+     *  \return True if a squared error of the first element is greater than a squared error of the second element. */
     bool operator ()(const ElementReference& e1,const ElementReference& e2) const {
-      return errors[e1.comp][e1.id] > errors[e2.comp][e2.id];
+      return errors_squared[e1.comp][e1.id] > errors_squared[e2.comp][e2.id];
     };
   };
 };

@@ -18,20 +18,17 @@
 
 #ifdef H2D_COMPLEX
 
-/// \brief hp-adaptivity module for Hcurl spaces.
-///
-/// HcurlAdapt is a hp-adaptivity module for continuous elements.
-/// Given a reference solution, it provides functions to calculate Hcurl or
-/// energy error estimates, acts as a container for the calculated errors.
-/// If not specifie by the used, this class uses the most accurate adaptivity
-/// selection algorithm which is slow.
-///
+/// Evaluation of an error between a (coarse) solution and a reference solution and adaptivity in Hcurl space. \ingroup g_adapt
+/** The class provides functionality necessary to adaptively refine elements in H1 space.
+ *  Given a reference solution and a coarse solution, it calculates error estimates
+ *  and it acts as a container for the calculated errors.
+ *  The class works best with a selector HcurlProjBasedSelector.
+ */
 class H2D_API HcurlAdapt : public Adapt {
 public:
-  HcurlAdapt(const Tuple<Space*>& spaces); ///< Initializes the class.
-
-protected:
-  virtual void prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln); ///< Prepare a value for evaluation of error.
+  /// Constructor.
+  /** \param[in] spaces An array of spaces. The number of spaces determines the number of components. For the best results, use instances of the class HcurlSpace. */
+  HcurlAdapt(const Tuple<Space*>& spaces);
 };
 
 #endif

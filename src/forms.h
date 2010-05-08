@@ -89,7 +89,7 @@ class Func
 {
   const int num_gip; ///< A number of integration points used by this intance.
 public:
-  const int nc;					// number of components
+  const int nc;	///< A number of components. Currently accepted values are 1 (H1, L2 space) and 2 (Hcurl, Hdiv space).
   T *val;					// function values. If orders differ for a diffrent
                                                 // direction, this returns max(h_order, v_order).
   T *dx, *dy; 					// derivatives
@@ -103,6 +103,9 @@ public:
 
   T *curl;					 // components of curl
 
+  /// Constructor.
+  /** \param[in] num_gip A number of integration points.
+   *  \param[in] num_comps A number of components. */
   explicit Func(int num_gip, int num_comps) : num_gip(num_gip), nc(num_comps) {
     val = val0 = val1 = NULL;
     dx = dx0 = dx1 = NULL;
@@ -113,12 +116,16 @@ public:
 #endif
   };
 
+/// Subtract arrays stored in a given attribute from the same array in provided function.
 #define H2D_SUBTRACT_IF_NOT_NULL(__ATTRIB, __OTHER_FUNC) { if (__ATTRIB != NULL) { \
   assert_msg(__OTHER_FUNC.__ATTRIB != NULL, "Unable to subtract a function expansion " #__ATTRIB " is NULL in the other function."); \
   for(int i = 0; i < num_gip; i++) __ATTRIB[i] -= __OTHER_FUNC.__ATTRIB[i]; } }
 
+  /// Calculate this -= func for each function expations and each integration point.
+  /** \param[in] func A function which is subtracted from *this. A number of integratio points and a number of component has to match. */
   void subtract(const Func<T>& func) {
     assert_msg(num_gip == func.num_gip, "Unable to subtract a function due to a different number of integration points (this: %d, other: %d)", num_gip, func.num_gip);
+    assert_msg(nc == func.nc, "Unable to subtract a function due to a different number of components (this: %d, other: %d)", nc, func.nc);
     H2D_SUBTRACT_IF_NOT_NULL(val, func)
     H2D_SUBTRACT_IF_NOT_NULL(dx, func)
     H2D_SUBTRACT_IF_NOT_NULL(dy, func)
@@ -132,6 +139,7 @@ public:
       H2D_SUBTRACT_IF_NOT_NULL(dx1, func)
       H2D_SUBTRACT_IF_NOT_NULL(dy0, func)
       H2D_SUBTRACT_IF_NOT_NULL(dy1, func)
+      H2D_SUBTRACT_IF_NOT_NULL(curl, func)
     }
   };
 #undef H2D_SUBTRACT_IF_NOT_NULL

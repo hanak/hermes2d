@@ -84,6 +84,7 @@
 #include "refinement_type.h"
 #include "element_to_refine.h"
 #include "ref_selectors/selector.h"
+#include "ref_selectors/order_permutator.h"
 #include "ref_selectors/optimum_selector.h"
 #include "ref_selectors/proj_based_selector.h"
 #include "ref_selectors/l2_proj_based_selector.h"

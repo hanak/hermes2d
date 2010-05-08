@@ -1,34 +1,33 @@
-/// \addtogroup t_cand_proj Candidate projection
-/// \{
-/// \brief This test tests projection of a candidate in H1 space on a quad.
-///
-/// For each combination of orders it creates a polynom \f$ p(x,y) = \sum_h \sum_v a_{h,v} x^h y^v \f$.
-/// The test ensures that all coefficients \f$a_{h,v}\f$ are not zero. The polynom is defined
-/// in the reference domain.
-/// Then, it creates a mesh which consist of a single element. The order of the element is
-/// \f$(h-1, v-1)\f$ where \f$h\f$ is a current horizontal order and \f$v\f$ is current vertical order.
-/// Using the mesh and the polynom it calculates a solution and reference solution. The reference solution
-/// is used the control the selection of candidates. Using projection based selector,
-/// the test generates HP_ANISO candidates and calculates their errors.
-///
-/// The test succeeds if:
-///  - Values of reference solution equals to values of the original function in random points.
-///  - Errors of all candidates whose orders of all sons are greater or equal to order of the polynom are zero.
-///
-/// Output table legend:
-///  - '-': Test was not done
-///  - ' ': Test succesfull
-///  - 'S': Values of the reference solution differs from values of the test function despite that the order of the reference solution is either the same of higher than the test function.
-///  - 'C': Some candidates has non-zero error despite that order of their sons is greater or equal to the order of the test function.
-///
-/// \dontinclude hermes2d.h
-/// \dontinclude solver_umfpack.h
-
 #include <hermes2d.h>
 #include <solver_umfpack.h>
-#include "functions.h"
 
 using namespace RefinementSelectors;
+
+/** \addtogroup t_cand_proj Candidate Projection (Zero Error)
+ *  \{
+ *  \brief This test tests projection of a candidate in H1 space on a quad.
+ *
+ *  For each combination of orders it creates a polynom \f$ p(x,y) = \sum_h \sum_v a_{h,v} x^h y^v \f$.
+ *  The test ensures that all coefficients \f$a_{h,v}\f$ are not zero. The polynom is defined
+ *  in the reference domain.
+ *  Then, it creates a mesh which consist of a single element. The order of the element is
+ *  \f$(h-1, v-1)\f$ where \f$h\f$ is a current horizontal order and \f$v\f$ is current vertical order.
+ *  Using the mesh and the polynom it calculates a solution and reference solution. The reference solution
+ *  is used the control the selection of candidates. Using projection based selector,
+ *  the test generates HP_ANISO candidates and calculates their errors.
+ *
+ *  The test succeeds if:
+ *   - Values of reference solution equals to values of the original function in random points.
+ *   - Errors of all candidates whose orders of all sons are greater or equal to order of the polynom are zero.
+ *
+ *  Output table legend:
+ *   - '-': Test was not done
+ *   - ' ': Test succesfull
+ *   - 'S': Values of the reference solution differs from values of the test function despite that the order of the reference solution is either the same of higher than the test function.
+ *   - 'C': Some candidates has non-zero error despite that order of their sons is greater or equal to the order of the test function.
+ */
+
+#include "functions.h"
 
 /* global definitions */
 #undef ERROR_SUCCESS

@@ -59,12 +59,12 @@ namespace RefinementSelectors {
         double value = 0.0;
         for(int j = 0; j < num_gip_points; j++) {
           double gip_x = gip_points[j][H2D_GIP2D_X], gip_y = gip_points[j][H2D_GIP2D_Y];
-          double value0[2] = { shapeset.get_value(H2D_FN_VALUE, shape0_inx, gip_x, gip_y, 0), shapeset.get_value(H2D_FN_VALUE, shape0_inx, gip_x, gip_y, 1) };
-          double value1[2] = { shapeset.get_value(H2D_FN_VALUE, shape1_inx, gip_x, gip_y, 0), shapeset.get_value(H2D_FN_VALUE, shape1_inx, gip_x, gip_y, 1) };
-          double d1dx0 = shapeset.get_value(H2D_FN_DX, shape0_inx, gip_x, gip_y, 1);
-          double d1dx1 = shapeset.get_value(H2D_FN_DX, shape1_inx, gip_x, gip_y, 1);
-          double d0dy0 = shapeset.get_value(H2D_FN_DY, shape0_inx, gip_x, gip_y, 0);
-          double d0dy1 = shapeset.get_value(H2D_FN_DY, shape1_inx, gip_x, gip_y, 0);
+          double value0[2] = { shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0), shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 1) };
+          double value1[2] = { shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0), shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 1) };
+          double d1dx0 = shapeset.get_value(H2D_FEI_DX, shape0_inx, gip_x, gip_y, 1);
+          double d1dx1 = shapeset.get_value(H2D_FEI_DX, shape1_inx, gip_x, gip_y, 1);
+          double d0dy0 = shapeset.get_value(H2D_FEI_DY, shape0_inx, gip_x, gip_y, 0);
+          double d0dy1 = shapeset.get_value(H2D_FEI_DY, shape1_inx, gip_x, gip_y, 0);
           double curl0 = d1dx0 - d0dy0;
           double curl1 = d1dx1 - d0dy1;
 

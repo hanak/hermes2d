@@ -88,9 +88,9 @@ double PythonAdapt::calc_error_n(int num, ...) {
   va_list ap;
   va_start(ap, num);
   for (int i = 0; i < num; i++)
-    sln.push_back(va_arg(ap, Solution*)); //nasty and unsafe C-style type-casting to a child class: required by Python wrappers.
+    sln.push_back(va_arg(ap, Solution*)); //unsafe C-style type-casting to a child class: required by Python wrappers.
   for (int i = 0; i < num; i++)
-    rsln.push_back(va_arg(ap, Solution*)); //nasty and unsafe C-style type-casting to a child class: required by Python wrappers.
+    rsln.push_back(va_arg(ap, Solution*)); //unsafe C-style type-casting to a child class: required by Python wrappers.
   va_end(ap);
 
   //call error evaluation

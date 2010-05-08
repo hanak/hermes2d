@@ -27,6 +27,15 @@
 #define H2D_CHECK_INDEX     assert(index >= 0 && index <= max_index[mode])
 #define H2D_CHECK_COMPONENT assert(component >= 0 && component < num_components)
 
+/// Index of a function expansion. Used to selected a value in Shapeset::get_value().
+enum FunctionExpansionIndex {
+  H2D_FEI_VALUE = 0, ///< Index of a function value f.
+  H2D_FEI_DX = 1, ///< Index of df/dx.
+  H2D_FEI_DY = 2, ///< Index of df/dy.
+  H2D_FEI_DXX = 3, ///< Index of df/dxdx.
+  H2D_FEI_DYY = 4, ///< Index of df/dydy.
+  H2D_FEI_DXY = 5 ///< Index of df/dxdy.
+};
 
 /// \brief Defines a set of shape functions.
 ///

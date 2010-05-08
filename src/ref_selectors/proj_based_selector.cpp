@@ -3,6 +3,7 @@
 #include "../linsystem.h"
 #include "../quad_all.h"
 #include "../element_to_refine.h"
+#include "order_permutator.h"
 #include "proj_based_selector.h"
 
 namespace RefinementSelectors {

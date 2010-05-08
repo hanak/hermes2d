@@ -67,44 +67,6 @@ namespace RefinementSelectors {
     }
   }
 
-  OrderPermutator::OrderPermutator(int start_quad_order, int end_quad_order, bool iso_p, int* tgt_quad_order)
-    : start_order_h(H2D_GET_H_ORDER(start_quad_order)), start_order_v(H2D_GET_V_ORDER(start_quad_order))
-    , end_order_h(H2D_GET_H_ORDER(end_quad_order)), end_order_v(H2D_GET_V_ORDER(end_quad_order))
-    , iso_p(iso_p), tgt_quad_order(tgt_quad_order) {
-    assert_msg(start_order_h <= end_order_h && start_order_v <= end_order_v, "End orders (H:%d, V:%d) are below start orders (H:%d, V:%d).", end_order_h, end_order_v, start_order_h, start_order_v);
-    reset();
-  }
-
-  bool OrderPermutator::next() {
-    if (iso_p) {
-      if (order_h >= end_order_h || order_v >= end_order_v)
-        return false;
-
-      order_h++; order_v++;
-    }
-    else {
-      if (order_h >= end_order_h && order_v >= end_order_v)
-        return false;
-
-      order_h++;
-      if (order_h > end_order_h) {
-        order_h = start_order_h;
-        order_v++;
-      }
-    }
-
-    if (tgt_quad_order != NULL)
-      *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
-    return true;
-  }
-
-  void OrderPermutator::reset() {
-    order_h = start_order_h;
-    order_v = start_order_v;
-    if (tgt_quad_order != NULL)
-      *tgt_quad_order = H2D_MAKE_QUAD_ORDER(order_h, order_v);
-  }
-
   OptimumSelector::OptimumSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
     : Selector(max_order), cand_list(cand_list)
     , conv_exp(conv_exp), shapeset(shapeset) {
@@ -586,7 +548,7 @@ namespace RefinementSelectors {
       return true;
   }
 
-  void OptimumSelector::update_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders) {
+  void OptimumSelector::generate_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders) {
     assert_msg(refinement != H2D_REFINEMENT_P, "P-candidate not supported for updating shared orders");
     const int num_sons = get_refin_sons(refinement);
     if (suggested_quad_orders != NULL) {

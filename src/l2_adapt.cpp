@@ -33,9 +33,3 @@ L2Adapt::L2Adapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
       }
     }
 }
-
-void L2Adapt::prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) {
-  err_sln.val[gip_inx] = err_sln.val[gip_inx] - rsln.val[gip_inx];
-  err_sln.dx[gip_inx] = err_sln.dx[gip_inx] - rsln.dx[gip_inx];
-  err_sln.dy[gip_inx] = err_sln.dy[gip_inx] - rsln.dy[gip_inx];
-}

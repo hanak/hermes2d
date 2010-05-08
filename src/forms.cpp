@@ -80,7 +80,7 @@ Func<Ord>* init_fn_ord(const int order)
 {
   Ord *d = new Ord(order);
 
-	Func<Ord>* f = new Func<Ord>(1, 1);
+	Func<Ord>* f = new Func<Ord>(1, 2);
 	f->val = d;
 	f->dx = f->dy = d;
 #ifdef H2D_SECOND_DERIVATIVES_ENABLED

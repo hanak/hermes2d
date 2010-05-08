@@ -36,10 +36,4 @@ HcurlAdapt::HcurlAdapt(const Tuple<Space*>& spaces) : Adapt(spaces) {
     }
 }
 
-void HcurlAdapt::prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln) {
-  err_sln.val0[gip_inx] = err_sln.val0[gip_inx] - rsln.val0[gip_inx];
-  err_sln.val1[gip_inx] = err_sln.val1[gip_inx] - rsln.val1[gip_inx];
-  err_sln.curl[gip_inx] = err_sln.curl[gip_inx] - rsln.curl[gip_inx];
-}
-
 #endif

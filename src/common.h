@@ -63,12 +63,12 @@ enum // node types
   H2D_TYPE_EDGE = 1
 };
 
-enum // element modes
-{
+#define H2D_NUM_MODES 2 ///< A number of modes, see enum ElementMode.
+
+enum ElementMode { // element modes
   H2D_MODE_TRIANGLE = 0,
   H2D_MODE_QUAD = 1
 };
-
 
 const int H2D_ANY = -1234;
 

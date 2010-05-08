@@ -16,20 +16,17 @@
 #ifndef __H2D_L2_ADAPT_H
 #define __H2D_L2_ADAPT_H
 
-/// \brief hp-adaptivity module for L2 spaces.
-///
-/// L2Adapt is a hp-adaptivity module for continuous elements.
-/// Given a reference solution, it provides functions to calculate L2 or
-/// energy error estimates, acts as a container for the calculated errors.
-/// If not specifie by the used, this class uses the most accurate adaptivity
-/// selection algorithm which is slow.
-///
+/// Evaluation of an error between a (coarse) solution and a reference solution and adaptivity in L2 space. \ingroup g_adapt
+/** The class provides functionality necessary to adaptively refine elements in L2 space.
+ *  Given a reference solution and a coarse solution, it calculates error estimates
+ *  and it acts as a container for the calculated errors.
+ *  The class works best with a selector L2ProjBasedSelector.
+ */
 class H2D_API L2Adapt : public Adapt {
 public:
-  L2Adapt(const Tuple<Space*>& spaces); ///< Initializes the class.
-
-protected:
-  virtual void prepare_eval_error_value(const int gip_inx, const Func<scalar>& err_sln, const Func<scalar>& rsln); ///< Prepare a value for evaluation of error.
+  /// Constructor.
+  /** \param[in] spaces An array of spaces. The number of spaces determines the number of components. For the best results, use instances of the class L2Space. */
+  L2Adapt(const Tuple<Space*>& spaces);
 };
 
 #endif

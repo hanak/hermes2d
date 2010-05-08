@@ -28,7 +28,7 @@ namespace RefinementSelectors {
 
     //fill with values
     scalar** rvals_son = precalc_rvals[inx_son];
-    rvals_son[H2D_FN_VALUE] = rsln->get_fn_values(0);
+    rvals_son[H2D_FEI_VALUE] = rsln->get_fn_values(0);
 
     return rvals_son;
   }
@@ -50,8 +50,8 @@ namespace RefinementSelectors {
         double value = 0.0;
         for(int j = 0; j < num_gip_points; j++) {
           double gip_x = gip_points[j][H2D_GIP2D_X], gip_y = gip_points[j][H2D_GIP2D_Y];
-          double value0 = shapeset.get_value(H2D_FN_VALUE, shape0_inx, gip_x, gip_y, 0);
-          double value1 = shapeset.get_value(H2D_FN_VALUE, shape1_inx, gip_x, gip_y, 0);
+          double value0 = shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0);
+          double value1 = shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0);
 
           value += gip_points[j][H2D_GIP2D_W] * (value0*value1);
         }
@@ -76,7 +76,7 @@ namespace RefinementSelectors {
 
       //get value of ref. solution
       scalar ref_value;
-      ref_value = sub_gip.rvals[H2D_FN_VALUE][gip_inx];
+      ref_value = sub_gip.rvals[H2D_FEI_VALUE][gip_inx];
 
       //evaluate a right-hand value
       scalar value = (shape_value * ref_value);
@@ -102,7 +102,7 @@ namespace RefinementSelectors {
       }
 
       //get value of ref. solution
-      scalar ref_value = sub_gip.rvals[H2D_FN_VALUE][gip_inx];
+      scalar ref_value = sub_gip.rvals[H2D_FEI_VALUE][gip_inx];
 
       //evaluate error
       double error = sqr(proj_value - ref_value);
