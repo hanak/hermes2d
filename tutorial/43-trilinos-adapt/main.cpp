@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
   double *s;
   do
   {
-    info("!---- Adaptivity step %d ---------------------------------------------", it++);
+    info("---- Adaptivity step %d ---------------------------------------------", it++);
 
     int ndof = assign_dofs(&space);
     FeProblem fep(&wf);

@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
     double err_est;
 
     a_step++;
-    info("!---- Adaptivity step %d ---------------------------------------------", a_step);
+    info("---- Adaptivity step %d ---------------------------------------------", a_step);
 
     // show coarse mesh and solution
     sview_coarse.show(&sln_coarse);
