@@ -203,7 +203,7 @@ protected: //forms and error evaluation
    *  \param[in] rrv1 A reference map of a reference solution rsln1.
    *  \param[in] rrv2 A reference map of a reference solution rsln2.
    *  \return A square of an absolute error. */
-  scalar eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
+  virtual scalar eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
                     MeshFunction *sln1, MeshFunction *sln2, MeshFunction *rsln1, MeshFunction *rsln2,
                     RefMap *rv1,        RefMap *rv2,        RefMap *rrv1,        RefMap *rrv2);
 
@@ -217,7 +217,7 @@ protected: //forms and error evaluation
    *  \param[in] rrv1 A reference map of a reference solution rsln1.
    *  \param[in] rrv2 A reference map of a reference solution rsln2.
    *  \return A square of a norm. */
-  scalar eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
+  virtual scalar eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
                    MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2);
 
   /// Builds an ordered queue of elements that are be examined.
