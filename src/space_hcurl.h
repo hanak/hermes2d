@@ -46,7 +46,6 @@ protected:
 
   virtual void get_vertex_assembly_list(Element* e, int iv, AsmList* al) {}
   virtual void get_edge_assembly_list_internal(Element* e, int ie, AsmList* al);
-  virtual void get_bubble_assembly_list(Element* e, AsmList* al);
 
   static double** hcurl_proj_mat;
   static double*  hcurl_chol_p;

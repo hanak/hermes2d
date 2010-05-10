@@ -117,7 +117,10 @@ public:
   {
     H2D_CHECK_ORDER(H2D_GET_H_ORDER(order));
     H2D_CHECK_ORDER(H2D_GET_V_ORDER(order));
-    return bubble_indices[mode][order];
+    int index = order;
+    if (mode == H2D_MODE_QUAD) //tables of bubble indices are transposed
+      index = H2D_MAKE_QUAD_ORDER(H2D_GET_V_ORDER(order), H2D_GET_H_ORDER(order));
+    return bubble_indices[mode][index];
   }
 
   /// Returns the number of bubble functions for an element of the given order.

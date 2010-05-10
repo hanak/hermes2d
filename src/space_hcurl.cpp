@@ -106,23 +106,6 @@ void HcurlSpace::assign_bubble_dofs()
     shapeset->set_mode(e->get_mode());
     ElementData* ed = &edata[e->id];
     ed->bdof = next_dof;
-
-    ////count number of bubbles since a number returned by 'shapeset->get_num_bubbles(ed->order)' cannot be trusted
-    ////when bubble 1/1 is requested, it counts bubbles 2/0 too
-    //int order_h = H2D_GET_H_ORDER(ed->order), order_v = H2D_GET_V_ORDER(ed->order);
-    //int order = std::max(order_h, order_v);
-    //int quad_order = shapeset->get_num_bubbles(H2D_MAKE_QUAD_ORDER(order, order));
-    //const int num_bubbles = shapeset->get_num_bubbles(quad_order);
-    //int* bubble_inxs = shapeset->get_bubble_indices(quad_order);
-    //int num_valid_bubbles = 0;
-    //for(int i = 0; i < num_bubbles; i++) {
-    //  int bubble_quad_order = shapeset->get_order(bubble_inxs[i]);
-    //  if (order_h >= H2D_GET_H_ORDER(bubble_quad_order) && order_v >= H2D_GET_V_ORDER(bubble_quad_order))
-    //    num_valid_bubbles++;
-    //}
-    //ed->n = num_valid_bubbles;
-    //warn_if(num_valid_bubbles != shapeset->get_num_bubbles(ed->order), "Counted number of bubbles (%d) differs from reported number of bubbles (%d)", num_valid_bubbles, shapeset->get_num_bubbles(ed->order));
-
     ed->n = shapeset->get_num_bubbles(ed->order);
     next_dof += ed->n * stride;
   }
@@ -160,18 +143,6 @@ void HcurlSpace::get_edge_assembly_list_internal(Element* e, int ie, AsmList* al
       al->add_triplet(shapeset->get_constrained_edge_index(ie, j, ori, part), dof, 1.0);
   }
 }
-
-
-void HcurlSpace::get_bubble_assembly_list(Element* e, AsmList* al)
-{
-  ElementData* ed = &edata[e->id];
-  if (!ed->n) return;
-
-  int* indices = shapeset->get_bubble_indices(ed->order);
-  for (int i = 0, dof = ed->bdof; i < ed->n; i++, dof += stride)
-    al->add_triplet(*indices++, dof, 1.0);
-}
-
 
 //// BC stuff //////////////////////////////////////////////////////////////////////////////////////
 

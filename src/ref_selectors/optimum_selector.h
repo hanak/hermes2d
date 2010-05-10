@@ -144,9 +144,11 @@ namespace RefinementSelectors {
       H2DST_BUBBLE = 0x10 ///< Bubble function.
     };
 
-    struct ShapeInx { ///< A shape index.
-      int order_h; ///< Order in H direction. Zero if the shape is just along V-direction.
-      int order_v; ///< Order in H direction. Zero if the shape is just along V-direction.
+    /// A shape index.
+    /** Any element order higher than both the vertical and the horizontal direction will use a given shape function. */
+    struct ShapeInx {
+      int order_h; ///< Order in H direction.
+      int order_v; ///< Order in V direction.
       int inx; ///< Index of a shape.
       ShapeType type; ///< Shape type.
       ShapeInx(int order_h, int order_v, int inx, ShapeType type) : order_h(order_h), order_v(order_v), inx(inx), type(type) {};
@@ -159,6 +161,17 @@ namespace RefinementSelectors {
     int next_order_shape[H2D_NUM_MODES][H2DRS_MAX_ORDER+1]; ///< An index of a shape index of the next order.
     bool has_vertex_shape[H2D_NUM_MODES], has_edge_shape[H2D_NUM_MODES], has_bubble_shape[H2D_NUM_MODES]; ///< True if given type is available in the shapeset.
 
+    /// Adds an index (or indices) of a bubble function of a given order if the index was not used yet.
+    /** This function allows to add indices of bubble functions that were not yet added on a quadrilateral.
+     *  Since a shapeset allows only to retrieve a list of all possible bubbles based on an order of an element,
+     *  this functions allows to create back-mapping table: shape index -> the smallest element order that uses it.
+     *  The function assumes that all shapes of a lower element order than a given combinations are already added.
+     *  Used by build_shape_indices().
+     *  \param[in] order_h A horizontal order of an element.
+     *  \param[in] order_v A vertical order of an element.
+     *  \param[in,out] used_shape_index A vector of used shapes. If a shape index is present in the map, a shape was already added and it will not be added again.
+     *  \paarm[in,out] indices A vector of shape indices. The vector is update by the function. */
+    void add_bubble_shape_index(int order_h, int order_v, std::map<int, bool>& used_shape_index, std::vector<ShapeInx>& indices);
     void build_shape_indices(const int mode, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); ///< Build shape indices.
     int calc_num_shapes(int mode, int order_h, int order_v, int allowed_type_mask); ///< Calculates number of shapes of up to given order and of allowd types. If order == H2DRS_ORDER_ANY, any order is allowed.
 

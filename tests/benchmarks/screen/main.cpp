@@ -16,7 +16,7 @@ using namespace RefinementSelectors;
 ///  - NDOF_STOP=40000
 ///
 ///  Results for given parameters
-///  - DOFs: 4476
+///  - DOFs: 3994
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
 const double THRESHOLD = 0.5;     // This is a quantitative parameter of the adapt(...) function and

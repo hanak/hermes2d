@@ -154,7 +154,7 @@ void H1Space::assign_vertex_dofs()
     shapeset->set_mode(e->get_mode());
     ElementData* ed = &edata[e->id];
     ed->bdof = next_dof;
-    ed->n = order ? shapeset->get_num_bubbles(ed->order) : 0; //FIXME: this function might return invalid value because retrieved bubble functions for non-uniform orders might be invalid for the given order.
+    ed->n = order ? shapeset->get_num_bubbles(ed->order) : 0;
     next_dof += ed->n * stride;
   }
 }
