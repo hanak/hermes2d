@@ -101,8 +101,8 @@ namespace RefinementSelectors {
     return total_value;
   }
 
-  double H1ProjBasedSelector::evaluate_error_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
-    double total_error = 0;
+  double H1ProjBasedSelector::evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
+    double total_error_squared = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
       //get location and transform it
       double3 &gip_pt = sub_gip.gip_points[gip_inx];
@@ -125,13 +125,13 @@ namespace RefinementSelectors {
       ref_value[H2D_FEI_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_FEI_DY][gip_inx];
 
       //evaluate error
-      double error = sqr(proj_value[H2D_FEI_VALUE] - ref_value[H2D_FEI_VALUE])
+      double error_squared = sqr(proj_value[H2D_FEI_VALUE] - ref_value[H2D_FEI_VALUE])
         + sqr(proj_value[H2D_FEI_DX] - ref_value[H2D_FEI_DX])
         + sqr(proj_value[H2D_FEI_DY] - ref_value[H2D_FEI_DY]);
 
-      total_error += gip_pt[H2D_GIP2D_W] * error;
+      total_error_squared += gip_pt[H2D_GIP2D_W] * error_squared;
     }
-    return total_error;
+    return total_error_squared;
   }
 }
 

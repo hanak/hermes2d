@@ -86,8 +86,8 @@ namespace RefinementSelectors {
     return total_value;
   }
 
-  double L2ProjBasedSelector::evaluate_error_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
-    double total_error = 0;
+  double L2ProjBasedSelector::evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
+    double total_error_squared = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
       //get location and transform it
       double3 &gip_pt = sub_gip.gip_points[gip_inx];
@@ -105,11 +105,11 @@ namespace RefinementSelectors {
       scalar ref_value = sub_gip.rvals[H2D_FEI_VALUE][gip_inx];
 
       //evaluate error
-      double error = sqr(proj_value - ref_value);
+      double error_squared = sqr(proj_value - ref_value);
 
-      total_error += gip_pt[H2D_GIP2D_W] * error;
+      total_error_squared += gip_pt[H2D_GIP2D_W] * error_squared;
     }
-    return total_error;
+    return total_error_squared;
   }
 }
 

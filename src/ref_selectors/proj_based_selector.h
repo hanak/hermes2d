@@ -74,6 +74,7 @@ namespace RefinementSelectors {
 
     /// Calculate projection errors of an element of an candidate.
     /** The element may span over multiple sub-domain. Element of a candidate is defined in the reference domain.
+     *  Modify this method in order to add ortho-adaptivity.
      *  \param[in] mode Mode: ::H2D_MODE_TRIANGLE or ::H2D_MODE_QUAD.
      *  \param[in] gip_points Integration points (location x, location y, weight) in the reference domain.
      *  \param[in] num_gip_points Number of integration point.
@@ -84,8 +85,8 @@ namespace RefinementSelectors {
      *  \param[in] coefs_mx An array of coefficients that scale df/dx for each subdomain. A coefficient represents effects of a transformation of the subdomain on df/dx.
      *  \param[in] coefs_my An array of coefficients that scale df/dy for each subdomain. A coefficient represents effects of a transformation of the subdomain on df/dy.
      *  \param[in] info Information about candidates: range of orders, etc.
-     *  \param[out] errors Calculated errors for a combination of orders. */
-    void calc_error_cand_element(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, const CandsInfo& info, SonProjectionError errors);
+     *  \param[out] errors_squared Calculated squared errors for all combination of orders. */
+    void calc_error_cand_element(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, const CandsInfo& info, SonProjectionError errors_squared);
 
   protected: //projection
     struct ElemProj { ///< Element projection parameters.
@@ -118,7 +119,7 @@ namespace RefinementSelectors {
     virtual scalar** precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order) = 0;
     virtual double** build_projection_matrix(Shapeset& shapeset, double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes) = 0; ///< Builds a projection matrix.
     virtual scalar evaluate_rsh_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) = 0; ///< Evaluate a single value of the right side for a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
-    virtual double evaluate_error_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) = 0; ///< Evaluate an error of a projection on a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
+    virtual double evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) = 0; ///< Evaluate an error of a projection on a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
   };
 }
 

@@ -100,7 +100,7 @@ void ElementToRefineStream::write_header(std::ios_base::openmode mode) {
   assert_msg((mode & ios_base::binary) != 0, "Binary mode supported only.");
 
   //write header tag
-  stream << H2DER_START_TAG << " " << H2DER_BIN_TAG << endl;
+  stream << H2DER_START_TAG << " " << H2DER_BIN_TAG << "\n";
 }
 
 bool ElementToRefineStream::read_header(std::ios_base::openmode mode) {
@@ -129,17 +129,17 @@ uint8_t ElementToRefineStream::get_byte_size(int value) {
   }
 }
 
-void ElementToRefineStream::write_bytes(const int data, int num_bytes) {
-  write_bytes(&data, num_bytes);
+void ElementToRefineStream::write_bytes(const int integer, int num_bytes) {
+  write_bytes(&integer, num_bytes);
 }
 
-void ElementToRefineStream::write_bytes(const void* data, int num_bytes) {
+void ElementToRefineStream::write_bytes(const void* integer_ptr, int num_bytes) {
   if (little_endian)
-    stream.write((const char*)data, num_bytes);
+    stream.write((const char*)integer_ptr, num_bytes);
   else {
-    const char* data_c = (const char*)data;
+    const char* integer_ptr_c = (const char*)integer_ptr;
     for(unsigned i = sizeof(int) - 1; i > (sizeof(int) - num_bytes - 1); i--)
-      stream << data_c[i];
+      stream << integer_ptr_c[i];
   }
 }
 

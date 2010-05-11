@@ -107,8 +107,8 @@ namespace RefinementSelectors {
     return total_value;
   }
 
-  double HcurlProjBasedSelector::evaluate_error_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
-    double total_error = 0;
+  double HcurlProjBasedSelector::evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) {
+    double total_error_squared = 0;
     double coef_curl = std::abs(sub_trf.coef_mx * sub_trf.coef_my);
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
       //get location and transform it
@@ -131,13 +131,13 @@ namespace RefinementSelectors {
       scalar ref_curl = coef_curl * (sub_gip.rvals[H2D_RV_D1DX][gip_inx] - sub_gip.rvals[H2D_RV_D0DY][gip_inx]); //coef_curl * curl
 
       //evaluate error
-      double error = sqr(proj_value0 - ref_value0)
+      double error_squared = sqr(proj_value0 - ref_value0)
         + sqr(proj_value1 - ref_value1)
         + sqr(proj_curl - ref_curl);
 
-      total_error += gip_pt[H2D_GIP2D_W] * error;
+      total_error_squared += gip_pt[H2D_GIP2D_W] * error_squared;
     }
-    return total_error;
+    return total_error_squared;
   }
 }
 

@@ -202,7 +202,7 @@ namespace RefinementSelectors {
     , double3* gip_points, int num_gip_points
     , const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my
     , const CandsInfo& info
-    , SonProjectionError errors
+    , SonProjectionError errors_squared
     ) {
     //allocate space
     int max_num_shapes = next_order_shape[mode][current_max_order];
@@ -238,12 +238,6 @@ namespace RefinementSelectors {
         inx_shape++;
       }
 
-      ////DEBUG-BEGIN
-      //std::stringstream str;
-      //str << "inx." << order_h << "." << order_v;
-      //save_matrix_octave(str.str(), &shape_inxs, 1, num_shapes);
-      ////DEBUG-END
-
       //continue only if there are shapes to process
       if (num_shapes > 0) {
         //calculate projection matrix
@@ -277,7 +271,7 @@ namespace RefinementSelectors {
         lubksb<scalar>(proj_matrix, num_shapes, indx, right_side);
 
         //calculate error
-        double error = 0;
+        double error_squared = 0;
         for(int inx_sub = 0; inx_sub < num_sub; inx_sub++) {
           Element* sub_domain = sub_domains[inx_sub];
           Trf* ref_coord_transf = sub_trfs[inx_sub];
@@ -286,9 +280,9 @@ namespace RefinementSelectors {
           ElemGIP sub_gip = { gip_points, num_gip_points, sub_rvals[inx_sub] };
           ElemProj elem_proj = { shape_inxs, num_shapes, right_side, quad_order };
 
-          error += evaluate_error_subdomain(sub_domain, sub_gip, sub_trf, elem_proj);
+          error_squared += evaluate_error_squared_subdomain(sub_domain, sub_gip, sub_trf, elem_proj);
         }
-        errors[order_h][order_v] = error * sub_area_corr_coef; //apply area correction coefficient
+        errors_squared[order_h][order_v] = error_squared * sub_area_corr_coef; //apply area correction coefficient
       }
     } while (order_perm.next());
 

@@ -18,7 +18,7 @@
 
 #include "../refinement_type.h"
 
-struct ElementToRefine;
+class ElementToRefine;
 struct Element;
 class Solution;
 
