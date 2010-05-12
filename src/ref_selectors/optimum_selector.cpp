@@ -14,7 +14,7 @@ namespace RefinementSelectors {
     stream << "split:" << get_refin_str(cand.split);
     stream << " err:" << std::scientific << cand.error << " dofs:" << cand.dofs << " ";
 
-    int num_sons = cand.get_num_sons();
+    int num_sons = cand.get_num_elems();
     stream << "[";
     for(int i = 0; i < num_sons; i++) {
       if (i > 0)
@@ -354,17 +354,17 @@ namespace RefinementSelectors {
       else if (cand->split == H2D_REFINEMENT_ANISO_H || cand->split == H2D_REFINEMENT_ANISO_V) info = &info_aniso;
       else { error("Invalid candidate type: %d.", cand->split); };
 
-      //evaluate sons of candidates
-      const int num_sons = cand->get_num_sons();
-      for(int i = 0; i < num_sons; i++) {
-        int son_order_h = H2D_GET_H_ORDER(cand->p[i]), son_order_v = H2D_GET_V_ORDER(cand->p[i]);
-        if (son_order_h != son_order_v)
+      //evaluate elements of candidates
+      const int num_elems = cand->get_num_elems();
+      for(int i = 0; i < num_elems; i++) {
+        int elem_order_h = H2D_GET_H_ORDER(cand->p[i]), elem_order_v = H2D_GET_V_ORDER(cand->p[i]);
+        if (elem_order_h != elem_order_v)
           info->uniform_orders = false;
         if (info->min_quad_order < 0 || info->max_quad_order < 0)
-          info->min_quad_order = info->max_quad_order = H2D_MAKE_QUAD_ORDER(son_order_h, son_order_v);
+          info->min_quad_order = info->max_quad_order = H2D_MAKE_QUAD_ORDER(elem_order_h, elem_order_v);
         else {
-          info->min_quad_order = H2D_MAKE_QUAD_ORDER(std::min(H2D_GET_H_ORDER(info->min_quad_order), son_order_h), std::min(H2D_GET_V_ORDER(info->min_quad_order), son_order_v));
-          info->max_quad_order = H2D_MAKE_QUAD_ORDER(std::max(H2D_GET_H_ORDER(info->max_quad_order), son_order_h), std::max(H2D_GET_V_ORDER(info->max_quad_order), son_order_v));
+          info->min_quad_order = H2D_MAKE_QUAD_ORDER(std::min(H2D_GET_H_ORDER(info->min_quad_order), elem_order_h), std::min(H2D_GET_V_ORDER(info->min_quad_order), elem_order_v));
+          info->max_quad_order = H2D_MAKE_QUAD_ORDER(std::max(H2D_GET_H_ORDER(info->max_quad_order), elem_order_h), std::max(H2D_GET_V_ORDER(info->max_quad_order), elem_order_v));
         }
       }
 
@@ -446,15 +446,10 @@ namespace RefinementSelectors {
   void OptimumSelector::evaluate_candidates(Element* e, Solution* rsln, double* avg_error, double* dev_error) {
     evaluate_cands_error(e, rsln, avg_error, dev_error);
     evaluate_cands_dof(e, rsln);
+    evaluate_cands_score(e);
   }
 
-  bool OptimumSelector::compare_cand_score(const Cand& a, const Cand& b) {
-    return a.score > b.score;
-  }
-
-  void OptimumSelector::select_best_candidate(Element* e, const double avg_error, const double dev_error, int* selected_cand, int* selected_h_cand) {
-    // select an above-average candidate with the steepest error decrease
-
+  void OptimumSelector::evaluate_cands_score(Element* e) {
     //calculate score of candidates
     Cand& unrefined = candidates[0];
     const int num_cands = (int)candidates.size();
@@ -467,8 +462,17 @@ namespace RefinementSelectors {
       else
         candidates[i].score = 0;
     }
+  }
+
+  bool OptimumSelector::compare_cand_score(const Cand& a, const Cand& b) {
+    return a.score > b.score;
+  }
+
+  void OptimumSelector::select_best_candidate(Element* e, const double avg_error, const double dev_error, int* selected_cand, int* selected_h_cand) {
+    // select an above-average candidate with the steepest error decrease
 
     //sort according to the score
+    const int num_cands = (int)candidates.size();
     if (num_cands > 2)
       std::sort(candidates.begin()+1, candidates.end(), compare_cand_score);
 
