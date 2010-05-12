@@ -129,7 +129,9 @@ inline cplx conj(cplx a) { return std::conj(a); }
 /* logging functions */
 /** \addtogroup g_logging Event Logging
  *  \{
- *  Functions and support for logging of events. Hermes2D controls even logging through:
+ *  \brief Functions and support for logging of events.
+ *
+ *  Hermes2D controls even logging through:
  *  - compiler directives (e.g. ::H2D_REPORT_INFO). Directives has to be included prior including Hermes2D header files.
  *  - boolean variables (e.g. ::__h2d_report_info). These variables can be set anytime but their direct use is discouraged
  *    because they are integeded to be used by Python wreappers. Initial settings of these variables is given by the compiler

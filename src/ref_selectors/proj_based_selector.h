@@ -20,106 +20,210 @@
 #include "optimum_selector.h"
 
 namespace RefinementSelectors {
-  /// Error of a son of a candidate for various order combinations.
+  /// Error of an element of a candidate for various permutations of orders. \ingroup g_selectors
   /** If not noted otherwise, the first index is the horizontal order, the second index is the vertical order.
-   *   The maximum allowed order is ::H2DRS_MAX_ORDER + 1 (for some Hermes2d internal reason). */
-  typedef double SonProjectionError[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2];
+   *   The maximum allowed order is ::H2DRS_MAX_ORDER + 1. */
+  typedef double CandElemProjError[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2];
 
-  /// Projection based selector.
-  /** Selects a candidate based on an error. The error is calculated for each element of a candidate separatelly and combined together. */
+# define H2DRS_DEFAULT_ERR_WEIGHT_H 2.0 ///< A default multiplicative coefficient of an error of a H-candidate. \ingroup g_selectors
+# define H2DRS_DEFAULT_ERR_WEIGHT_P 1.0 ///< A default multiplicative coefficient of an error of a P-candidate. \ingroup g_selectors
+# define H2DRS_DEFAULT_ERR_WEIGHT_ANISO 1.414214 ///< A default multiplicative coefficient of an error of a ANISO-candidate. \ingroup g_selectors
+
+  /// A general projection-based selector. \ingroup g_selectors
+  /** Calculates an error of a candidate as a combination of errors of
+   *  elements of a candidate. Each element of a candidate is calculated
+   *  separatelly.
+   *
+   *  \section s_override Expanding
+   *  In order to implement a support for a new space or a new approach to calculation of squared error,
+   *  implement following methods:
+   *  - precalc_ref_solution()
+   *  - build_projection_matrix()
+   *  - evaluate_rhs_subdomain()
+   *  - evaluate_error_squared_subdomain()
+   */
   class H2D_API ProjBasedSelector : public OptimumSelector {
   public: //API
+    /// Destructor
     virtual ~ProjBasedSelector();
+
+    /// Sets error weights.
+    /** An error weight is a multiplicative coefficient that modifies an error of candidate.
+     *  Error weights can be used to proritize refinements.
+     *  Error weights are applied in the method evaluate_cands_error().
+     *  \param[in] weight_h An error weight of H-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_H.
+     *  \param[in] weight_p An error weight of P-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_P.
+     *  \param[in] weight_aniso An error weight of ANISO-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_ANISO. */
+    void set_error_weights(double weight_h = H2DRS_DEFAULT_ERR_WEIGHT_H, double weight_p = H2DRS_DEFAULT_ERR_WEIGHT_P, double weight_aniso = H2DRS_DEFAULT_ERR_WEIGHT_ANISO);
   protected:
-    ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order); ///< Constructor.
+    /// Constructor.
+    /** Intializes attributes, projection matrix cache (ProjBasedSelector::proj_matrix_cache), and allocates rhs cache (ProjBasedSelector::rhs_cache).
+     *  \param[in] cand_list A predefined list of candidates.
+     *  \param[in] conv_exp A conversion exponent, see evaluate_cands_score().
+     *  \param[in] max_order A maximum order which considered. If ::H2DRS_DEFAULT_ORDER, a maximum order supported by the selector is used.
+     *  \param[in] shapeset A shapeset. It cannot be NULL.
+     *  \param[in] vertex_order A range of orders for vertex functions. Use an empty range (i.e. Range<int>()) to skip vertex functions.
+     *  \param[in] edge_bubble_order A range of orders for edge and bubble functions. Use an empty range (i.e. Range<int>()) to skip edge and bubble functions. */
+    ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order);
 
   protected: //error evaluation
-#define H2DRS_VALCACHE_INVALID 0 ///< State of value cache: item contains undefined or invalid value.
-#define H2DRS_VALCACHE_VALID 1 ///< State of value cache: item contains a valid value.
+#define H2DRS_VALCACHE_INVALID 0 ///< State of value cache: item contains undefined or invalid value. \ingroup g_selectors
+#define H2DRS_VALCACHE_VALID 1 ///< State of value cache: item contains a valid value. \ingroup g_selectors
+#define H2DRS_VALCACHE_USER 2 ///< State of value cache: the first state ID which can be used by the user. \ingroup g_selectors
     /// An item of a value cache.
     template<typename T>
     struct ValueCacheItem {
-      bool is_valid() const { return state != H2DRS_VALCACHE_INVALID; }; ///< Returns true, if value is valid.
-      void mark(int new_state = H2DRS_VALCACHE_VALID) { state = new_state; }; ///< Sets state of a value cache.
-      void set(T new_value) { value = new_value; }; ///< Sets a new value.
-      T get() const { return value; }; ///< Returns a value no matter if the item is valid or not.
+      /// Returns true if value is mared as valid.
+      /** \return True if the value is marked as valid. */
+      bool is_valid() const { return state != H2DRS_VALCACHE_INVALID; };
 
+      /// Marks a value.
+      /** \param[in] new_state A new state of the value. By default, it marks the value as valid. */
+      void mark(int new_state = H2DRS_VALCACHE_VALID) { state = new_state; };
+
+      /// Sets a value.
+      /** \param[in] new_value A new value. It does not change state of the value. */
+      void set(T new_value) { value = new_value; };
+
+      /// Returns the value. It does check the state of the value.
+      /** \return A current value. */
+      T get() const { return value; };
+
+      /// Constructor.
+      /** By default, the item is set as invalid.
+       *  \param value A starting value.
+       *  \param state A state of the value. */
       ValueCacheItem(const T& value = 0, const int state = H2DRS_VALCACHE_INVALID) : value(value), state(state) {}; ///< Default constructor. By default, it creates a item that contains invalid value.
     private:
       T value; ///< A value stored in the item.
-      int state; ///< A state of the image: ::H2DRS_VALCACHE_INVALID or ::H2DRS_VALCACHE_VALID or any other user-defined value.
+      int state; ///< A state of the image: ::H2DRS_VALCACHE_INVALID or ::H2DRS_VALCACHE_VALID or any other user-defined value. The first user defined state has to have number ::H2DRS_VALCACHE_USER.
     };
-    typedef double** ProjMatrixCache[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2]; ///< A projection matrix cache type. Defines a cache of projection matrices for all possible combination of orders.
+    /// A projection matrix cache type.
+    /** Defines a cache of projection matrices for all possible permutations of orders. */
+    typedef double** ProjMatrixCache[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2];
 
-    ProjMatrixCache proj_matrix_cache[H2D_NUM_MODES]; ///< An array of projection matrices. Used functions are defined through shape_inx. Index to the array is the size. All matrices are square. If record is NULL, the corresponding matrix has to be calculated.
-    /// An array of cached RHS values.
-    /** The array is allocated in the constructor, size of the array is equal to the maximum index of a shape function + 1.\
-     *  It used used strictly during evalution of proj_calc_err_son(). It is kept here in order to avoid frequent reallocating. */
+    /// An array of projection matrices.
+    /** The first index is the mode (see the enum ElementMode). The second and the third index
+     *  is the horizontal and the vertical order respectively.
+     *
+     *  All matrices are square dense matrices and they have to be created through the function new_matrix().
+     *  If record is NULL, the corresponding matrix has to be calculated. */
+    ProjMatrixCache proj_matrix_cache[H2D_NUM_MODES];
+
+    /// An array of cached right-hand side values.
+    /** The first index is an index of the shape function.
+     *
+     *  Contents of the array is valid in the method calc_error_cand_element().
+     *  The array is allocated in the constructor, the size of the array is equal to the maximum index of a shape function + 1.
+     *  \note It is kept here in order to avoid frequent reallocating. */
     ValueCacheItem<scalar>* rhs_cache;
 
-    /// Evaluates error of all candidates. Overloaded method OptimumSelector::evaluate_cands_error.
+    double error_weight_h; ///< A coefficient that multiplies error of H-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_H.
+    double error_weight_p; ///< A coefficient that multiplies error of P-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_P.
+    double error_weight_aniso; ///< A coefficient that multiplies error of ANISO-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_ANISO.
+
+    /// Calculates error of candidates.
+    /** Overriden function. For details, see OptimumSelector::evaluate_cands_error(). */
     virtual void evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error);
 
     /// Calculates projection errors of an elements of candidates for all permitations of orders.
-    /** Errors are not normalized. %Range of orders is defined through parameters info_h, info_h, info_aniso. Overloadable.
+    /** Errors are not normalized and they are squared.
+     *  The range of orders is defined through parameters \a info_h, \a info_h, and \a info_aniso.
+     *
+     *  If defining a new evalution (e.g. using a difference space) of errors,
+     *  follows instructions in \ref s_override.
      *  \param[in] e An element that is being examined by the selector.
      *  \param[in] info_h Information about H-candidates: range of orders, etc.
      *  \param[in] info_p Information about P-candidates: range of orders, etc.
      *  \param[in] info_aniso Information about ANISO-candidates: range of orders, etc.
-     *  \param[in] rsln Reference solution.
-     *  \param[out] herr Error of elements of H-candidates of various permutation of orders.
-     *  \param[out] perr Error of elements of P-candidates of various permutation of orders.
-     *  \param[out] anisoerr Error of elements of ANISO-candidates of various permutation of orders. */
-    virtual void calc_projection_errors(Element* e, const CandsInfo& info_h, const CandsInfo& info_p, const CandsInfo& info_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError perr, SonProjectionError anisoerr[4]);
+     *  \param[in] rsln A reference solution.
+     *  \param[out] herr An error of elements of H-candidates of various permutation of orders.
+     *  \param[out] perr An error of elements of P-candidates of various permutation of orders.
+     *  \param[out] anisoerr An error of elements of ANISO-candidates of various permutation of orders. */
+    virtual void calc_projection_errors(Element* e, const CandsInfo& info_h, const CandsInfo& info_p, const CandsInfo& info_aniso, Solution* rsln, CandElemProjError herr[4], CandElemProjError perr, CandElemProjError anisoerr[4]);
 
-    /// Calculate projection errors of an element of an candidate.
-    /** The element may span over multiple sub-domain. Element of a candidate is defined in the reference domain.
+    /// Calculate projection errors of an element of an candidate considering multiple orders.
+    /** An element of a candidate may span over multiple sub-domains. All integration uses the reference domain.
+     *
      *  Modify this method in order to add ortho-adaptivity.
-     *  \param[in] mode Mode: ::H2D_MODE_TRIANGLE or ::H2D_MODE_QUAD.
-     *  \param[in] gip_points Integration points (location x, location y, weight) in the reference domain.
-     *  \param[in] num_gip_points Number of integration point.
-     *  \param[in] num_sub Number of subdomains.
-     *  \param[in] sub_domains Subdomains (elements of a reference mesh) that occupy the element of a candidate.
-     *  \param[in] sub_trfs Transformation from a reference domain of a subdomain to a reference domain of the element of a candidate.
-     *  \param[in] sub_rvals Values at integration points for every subdomain (the first index). Contents of this array (the second index) is defined by user through precalc_ref_solution().
-     *  \param[in] coefs_mx An array of coefficients that scale df/dx for each subdomain. A coefficient represents effects of a transformation of the subdomain on df/dx.
-     *  \param[in] coefs_my An array of coefficients that scale df/dy for each subdomain. A coefficient represents effects of a transformation of the subdomain on df/dy.
+     *  \param[in] mode A mode (enum ElementMode).
+     *  \param[in] gip_points Integration points in the reference domain.
+     *  \param[in] num_gip_points A number of integration points.
+     *  \param[in] num_sub A number of subdomains.
+     *  \param[in] sub_domains Subdomains (elements of a reference mesh) that occupy the element of a candidate. The first index is an index of the subdomain.
+     *  \param[in] sub_trfs Transformation from a reference domain of a subdomain to a reference domain of the element of a candidate. The first index is an index of the subdomain.
+     *  \param[in] sub_rvals Values at integration points for every subdomain. Contents of this array (the second index) is defined by the method precalc_ref_solution(). The first index is an index of the subdomain.
+     *  \param[in] coefs_mx An array of coefficients that scale df/dx for each subdomain. A coefficient represents effects of a transformation \a sub_trfs on df/dx. The first index is an index of the subdomain.
+     *  \param[in] coefs_my An array of coefficients that scale df/dy for each subdomain. A coefficient represents effects of a transformation \a sub_trfs on df/dy. The first index is an index of the subdomain.
      *  \param[in] info Information about candidates: range of orders, etc.
-     *  \param[out] errors_squared Calculated squared errors for all combination of orders. */
-    void calc_error_cand_element(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, const CandsInfo& info, SonProjectionError errors_squared);
+     *  \param[out] errors_squared Calculated squared errors for all orders specified through \a info. */
+    void calc_error_cand_element(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, const CandsInfo& info, CandElemProjError errors_squared);
 
   protected: //projection
-    struct ElemProj { ///< Element projection parameters.
-      int* shape_inxs; ///< Shape indices
-      int num_shapes; ///< Number of shape indices.
+    /// Projection of an element of a candidate.
+    struct ElemProj {
+      int* shape_inxs; ///< Used shape indices
+      int num_shapes; ///< A number of used shape indices.
       scalar* shape_coefs; ///< Coefficients of shape indices of a projection.
-      int max_quad_order; ///< Maximum quad order of the projection.
-    };
-    struct ElemGIP { ///< GIP on a element.
-      double3* gip_points; ///< GIP points and weights.
-      int num_gip_points; ///< A number of GIP points.
-      scalar** rvals; ///< Values of a reference solution at GIP.
-    };
-    struct ElemSubTrf { ///< Transformation from a coordinate system of a sub-element to coordinate system of an element.
-      Trf* trf; ///< Transformation.
-      double coef_mx, coef_my; ///< Differentials correction coefficients.
+      int max_quad_order; ///< An encoded maximum order of the projection. If triangle, the vertical order is equal to the horizontal order.
     };
 
-    /// Returns array of arrays of precalculate values of the reference solution at quadrature points of a son of the element for a given son.
-    /** This method is intededed to be overloaded in order to provide all necessary values.
-     *  The method have to set active element and quadrature inside.
-     *  It is assumed that the returned arrays are allocated and deallocated by the child of this class.
-     *  Returned array has to be valid during the life-time of the instance.
-     *  The method can assume that the an element is refined into 4 elements (sons) in the reference mesh.
-     * \param[in] inx_son An index of a son of an element. The index is in a range [0, 3].
-     * \param[in] rsln A reference solution. This is source of a mesh.
-     * \param[in] element An element of the coarse solution. An element of both the same geometry and the same ID have to be present in the mesh provided by the reference solution.
-     * \param[in] intr_gip_order An order of quadrature integration. The number of quadrature points should be retrieved through a quadrature stored in the paremeter rsln.
-     * \return A pointer to 2D array: first index is index of a function expansion (e.g., f, df/dx, etc.), second index is index of GIP. */
+    /// Integration points in the reference domain of an element of a candidate.
+    /** The structure assumes Gauss Integration Points (GIP). */
+    struct ElemGIP {
+      double3* gip_points; ///< Integration points and weights. The first index is an index of an integration point, the second index is defined through the enum GIP2DIndices.
+      int num_gip_points; ///< A number of integration points.
+      scalar** rvals; ///< Values of a reference solution at the integration points. The first index is an index of the function expansion (f, df/dx, ...), the second index is an index of the integration point. The meaning of the second index is defined through the method precalc_ref_solution().
+    };
+
+    /// A transformation from a reference domain of a subdomain to a reference domain of an element of a candidate.
+    struct ElemSubTrf {
+      Trf* trf; ///< A transformation.
+      double coef_mx; ///< A coefficient that scales df/dx for each subdomain. A coefficient represents effects of a transformation \a trf on df/dx.
+      double coef_my; ///< A coefficient that scales df/dy for each subdomain. A coefficient represents effects of a transformation \a trf on df/dy.
+    };
+
+    /// Returns an array of values of the reference solution at integration points.
+    /** The method have to set an active element and an quadrature on its own.
+     *
+     *  Override to provide all necessary values. Provided pointers should stay valid through an execution
+     *  of the method calc_projection_errors(). Since an explicit deallocation of these pointers is not done,
+     *  it is suggested to provide pointers to attributes of the class rather than to dynamically allocate
+     *  an array.
+     *  The method can assume that the an element is refined into ::H2D_MAX_ELEMENT_SONS elements (sons) in the reference mesh.
+     *  \param[in] inx_son An index of a son of an element, i.e., an index of a subdomain. The index is in a range [0, H2D_MAX_ELEMENT_SONS - 1].
+     *  \param[in] rsln A reference solution.
+     *  \param[in] element An element of the coarse solution. An element of both the same geometry and the same ID have to be present in the mesh of the reference solution.
+     *  \param[in] intr_gip_order An order of quadrature integration. The number of quadrature points should be retrieved through a quadrature stored in the paremeter \a rsln.
+     *  \return A pointer to 2D array. The first index is an index of the function expansion (f, df/dx, ...), the second index is an index of the integration point. */
     virtual scalar** precalc_ref_solution(int inx_son, Solution* rsln, Element* element, int intr_gip_order) = 0;
-    virtual double** build_projection_matrix(Shapeset& shapeset, double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes) = 0; ///< Builds a projection matrix.
-    virtual scalar evaluate_rsh_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) = 0; ///< Evaluate a single value of the right side for a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
-    virtual double evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) = 0; ///< Evaluate an error of a projection on a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
+
+    /// Builds projection matrix using a given set of shapes.
+    /** Override to calculate a projection matrix.
+     *  \param[in] gip_points Integration points. The first index is an index of an integration point, the second index is defined through the enum GIP2DIndices.
+     *  \param[in] num_gip_points A number of integration points.
+     *  \param[in] shape_inx An array of shape indices.
+     *  \param[in] num_shapes A number of shape indices in the array.
+     *  \return A projection matrix. The matrix has to be allocated trought new_matrix(). The size of the matrix has to be \a num_shapes x \a num_shapes. */
+    virtual double** build_projection_matrix(double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes) = 0;
+
+    /// Evaluates a value of the right-hande side in a subdomain.
+    /** Override to calculate a value of the right-hand side.
+     *  \param[in] sub_elem An element of a reference mesh that corresponds to a subdomain.
+     *  \param[in] sub_gip Integration points. Locations of integration points are defined in the reference domain. Use \a sub_trf to transform it to the reference domain of an element of a candidate.
+     *  \param[in] sub_trf A transformation from a reference domain of a subdomain to the reference domain of an element of a candidate.
+     *  \param[in] shape_inx An index of a shape function.
+     *  \return A value of the righ-hand size of a given shape function. */
+    virtual scalar evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) = 0;
+
+    /// Evaluates an squared error of a projection of an element of a candidate onto subdomains.
+    /** Override to calculate an error using a provided projection and subdomains.
+     *  \param[in] sub_elem An element of a reference mesh that corresponds to a subdomain.
+     *  \param[in] sub_gip Integration points. Locations of integration points are defined in the reference domain. Use \a sub_trf to transform it to the reference domain of an element of a candidate.
+     *  \param[in] sub_trf A transformation from a reference domain of a subdomain to the reference domain of an element of a candidate.
+     *  \param[in] elem_proj A projection of an element of a candidate on subdomains.
+     *  \return A squared error of an element of a candidate. */
+    virtual double evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj) = 0;
   };
 }
 

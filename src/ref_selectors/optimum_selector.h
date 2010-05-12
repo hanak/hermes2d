@@ -313,11 +313,11 @@ namespace RefinementSelectors {
     virtual ~OptimumSelector() {};
 
     /// Selects a refinement.
-    /** Overriden function. For details, see Selector::select_refinement. */
+    /** Overriden function. For details, see Selector::select_refinement(). */
     virtual bool select_refinement(Element* element, int quad_order, Solution* rsln, ElementToRefine& refinement); ///< Selects refinement.
 
     /// Generates orders of elements which will be created due to a proposed refinement in another component that shares the same a mesh.
-    /** Overriden function. For details, see Selector::generate_shared_mesh_orders. */
+    /** Overriden function. For details, see Selector::generate_shared_mesh_orders(). */
     virtual void generate_shared_mesh_orders(const Element* element, const int orig_quad_order, const int refinement, int tgt_quad_orders[H2D_MAX_ELEMENT_SONS], const int* suggested_quad_orders); ///< Updates orders of a refinement in another multimesh component which shares a mesh.
   };
 

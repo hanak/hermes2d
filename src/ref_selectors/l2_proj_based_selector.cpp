@@ -11,7 +11,6 @@ namespace RefinementSelectors {
   L2ProjBasedSelector::L2ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, L2Shapeset* user_shapeset)
     : ProjBasedSelector(cand_list, conv_exp, max_order, user_shapeset == NULL ? &default_shapeset : user_shapeset, Range<int>(1,1), Range<int>(2, H2DRS_MAX_L2_ORDER)) {}
 
-//TODO: find out why -2 is used while both H1 and Hcurl use -1
   void L2ProjBasedSelector::set_current_order_range(Element* element) {
     current_max_order = this->max_order;
     if (current_max_order == H2DRS_DEFAULT_ORDER)
@@ -33,8 +32,7 @@ namespace RefinementSelectors {
     return rvals_son;
   }
 
-  double** L2ProjBasedSelector::build_projection_matrix(Shapeset& shapeset,
-    double3* gip_points, int num_gip_points,
+  double** L2ProjBasedSelector::build_projection_matrix(double3* gip_points, int num_gip_points,
     const int* shape_inx, const int num_shapes) {
     //allocate
     double** matrix = new_matrix<double>(num_shapes, num_shapes);
@@ -50,8 +48,8 @@ namespace RefinementSelectors {
         double value = 0.0;
         for(int j = 0; j < num_gip_points; j++) {
           double gip_x = gip_points[j][H2D_GIP2D_X], gip_y = gip_points[j][H2D_GIP2D_Y];
-          double value0 = shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0);
-          double value1 = shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0);
+          double value0 = shapeset->get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0);
+          double value1 = shapeset->get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0);
 
           value += gip_points[j][H2D_GIP2D_W] * (value0*value1);
         }
@@ -63,7 +61,7 @@ namespace RefinementSelectors {
     return matrix;
   }
 
-  scalar L2ProjBasedSelector::evaluate_rsh_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
+  scalar L2ProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
     scalar total_value = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
       //get location and transform it

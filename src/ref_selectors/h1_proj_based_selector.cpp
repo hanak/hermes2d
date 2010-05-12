@@ -13,10 +13,11 @@ namespace RefinementSelectors {
 
   void H1ProjBasedSelector::set_current_order_range(Element* element) {
     current_max_order = this->max_order;
+    int max_element_order = (20 - element->iro_cache)/2 - 1;
     if (current_max_order == H2DRS_DEFAULT_ORDER)
-      current_max_order = (20 - element->iro_cache)/2 - 1; // default
+      current_max_order = max_element_order; // default
     else
-      current_max_order = std::min(current_max_order, (20 - element->iro_cache)/2 - 1); // user specified
+      current_max_order = std::min(current_max_order, max_element_order); // user specified
     current_min_order = 1;
   }
 
@@ -27,15 +28,14 @@ namespace RefinementSelectors {
 
     //fill with values
     scalar** rvals_son = precalc_rvals[inx_son];
-    rvals_son[H2D_FEI_VALUE] = rsln->get_fn_values(0);
-    rvals_son[H2D_FEI_DX] = rsln->get_dx_values(0);
-    rvals_son[H2D_FEI_DY] = rsln->get_dy_values(0);
+    rvals_son[H2D_H1FE_VALUE] = rsln->get_fn_values(0);
+    rvals_son[H2D_H1FE_DX] = rsln->get_dx_values(0);
+    rvals_son[H2D_H1FE_DY] = rsln->get_dy_values(0);
 
     return rvals_son;
   }
 
-  double** H1ProjBasedSelector::build_projection_matrix(Shapeset& shapeset,
-    double3* gip_points, int num_gip_points,
+  double** H1ProjBasedSelector::build_projection_matrix(double3* gip_points, int num_gip_points,
     const int* shape_inx, const int num_shapes) {
     //allocate
     double** matrix = new_matrix<double>(num_shapes, num_shapes);
@@ -51,12 +51,12 @@ namespace RefinementSelectors {
         double value = 0.0;
         for(int j = 0; j < num_gip_points; j++) {
           double gip_x = gip_points[j][H2D_GIP2D_X], gip_y = gip_points[j][H2D_GIP2D_Y];
-          double value0 = shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0);
-          double value1 = shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0);
-          double dx0 = shapeset.get_value(H2D_FEI_DX, shape0_inx, gip_x, gip_y, 0);
-          double dx1 = shapeset.get_value(H2D_FEI_DX, shape1_inx, gip_x, gip_y, 0);
-          double dy0 = shapeset.get_value(H2D_FEI_DY, shape0_inx, gip_x, gip_y, 0);
-          double dy1 = shapeset.get_value(H2D_FEI_DY, shape1_inx, gip_x, gip_y, 0);
+          double value0 = shapeset->get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0);
+          double value1 = shapeset->get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0);
+          double dx0 = shapeset->get_value(H2D_FEI_DX, shape0_inx, gip_x, gip_y, 0);
+          double dx1 = shapeset->get_value(H2D_FEI_DX, shape1_inx, gip_x, gip_y, 0);
+          double dy0 = shapeset->get_value(H2D_FEI_DY, shape0_inx, gip_x, gip_y, 0);
+          double dy1 = shapeset->get_value(H2D_FEI_DY, shape1_inx, gip_x, gip_y, 0);
 
           value += gip_points[j][H2D_GIP2D_W] * (value0*value1 + dx0*dx1 + dy0*dy1);
         }
@@ -68,7 +68,7 @@ namespace RefinementSelectors {
     return matrix;
   }
 
-  scalar H1ProjBasedSelector::evaluate_rsh_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
+  scalar H1ProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
     scalar total_value = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
       //get location and transform it
@@ -78,23 +78,20 @@ namespace RefinementSelectors {
 
       //get value of a shape function
       scalar shape_value[3] = {0, 0, 0};
-      shape_value[H2D_FEI_VALUE] = shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
-      shape_value[H2D_FEI_DX] = shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
-      shape_value[H2D_FEI_DY] = shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
+      shape_value[H2D_H1FE_VALUE] = shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
+      shape_value[H2D_H1FE_DX] = shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
+      shape_value[H2D_H1FE_DY] = shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
 
       //get value of ref. solution
       scalar ref_value[3];
-      ref_value[H2D_FEI_VALUE] = sub_gip.rvals[H2D_FEI_VALUE][gip_inx];
-      ref_value[H2D_FEI_DX] = sub_trf.coef_mx * sub_gip.rvals[H2D_FEI_DX][gip_inx];
-      ref_value[H2D_FEI_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_FEI_DY][gip_inx];
-      //ref_value[H2D_FEI_VALUE] = 1; //DEBUG
-      //ref_value[H2D_FEI_DX] = 0; //DEBUG
-      //ref_value[H2D_FEI_DY] = 0; //DEBUG
+      ref_value[H2D_H1FE_VALUE] = sub_gip.rvals[H2D_H1FE_VALUE][gip_inx];
+      ref_value[H2D_H1FE_DX] = sub_trf.coef_mx * sub_gip.rvals[H2D_H1FE_DX][gip_inx];
+      ref_value[H2D_H1FE_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_FEI_DY][gip_inx];
 
       //evaluate a right-hand value
-      scalar value = (shape_value[H2D_FEI_VALUE] * ref_value[H2D_FEI_VALUE])
-        + (shape_value[H2D_FEI_DX] * ref_value[H2D_FEI_DX])
-        + (shape_value[H2D_FEI_DY] * ref_value[H2D_FEI_DY]);
+      scalar value = (shape_value[H2D_H1FE_VALUE] * ref_value[H2D_H1FE_VALUE])
+        + (shape_value[H2D_H1FE_DX] * ref_value[H2D_H1FE_DX])
+        + (shape_value[H2D_H1FE_DY] * ref_value[H2D_H1FE_DY]);
 
       total_value += gip_pt[H2D_GIP2D_W] * value;
     }
@@ -110,24 +107,24 @@ namespace RefinementSelectors {
       double ref_y = gip_pt[H2D_GIP2D_Y] * sub_trf.trf->m[1] + sub_trf.trf->t[1];
 
       //calculate value of projected solution
-      scalar proj_value[3] = {0, 0, 0};
+      std::vector<scalar> proj_value(H2D_H1FE_NUM, 0);
       for(int i = 0; i < elem_proj.num_shapes; i++) {
         int shape_inx = elem_proj.shape_inxs[i];
-        proj_value[H2D_FEI_VALUE] += elem_proj.shape_coefs[i] * shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
-        proj_value[H2D_FEI_DX] += elem_proj.shape_coefs[i] * shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
-        proj_value[H2D_FEI_DY] += elem_proj.shape_coefs[i] * shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
+        proj_value[H2D_H1FE_VALUE] += elem_proj.shape_coefs[i] * shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
+        proj_value[H2D_H1FE_DX] += elem_proj.shape_coefs[i] * shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
+        proj_value[H2D_H1FE_DY] += elem_proj.shape_coefs[i] * shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
       }
 
       //get value of ref. solution
       scalar ref_value[3];
-      ref_value[H2D_FEI_VALUE] = sub_gip.rvals[H2D_FEI_VALUE][gip_inx];
-      ref_value[H2D_FEI_DX] = sub_trf.coef_mx * sub_gip.rvals[H2D_FEI_DX][gip_inx];
-      ref_value[H2D_FEI_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_FEI_DY][gip_inx];
+      ref_value[H2D_H1FE_VALUE] = sub_gip.rvals[H2D_H1FE_VALUE][gip_inx];
+      ref_value[H2D_H1FE_DX] = sub_trf.coef_mx * sub_gip.rvals[H2D_H1FE_DX][gip_inx];
+      ref_value[H2D_H1FE_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_H1FE_DY][gip_inx];
 
       //evaluate error
-      double error_squared = sqr(proj_value[H2D_FEI_VALUE] - ref_value[H2D_FEI_VALUE])
-        + sqr(proj_value[H2D_FEI_DX] - ref_value[H2D_FEI_DX])
-        + sqr(proj_value[H2D_FEI_DY] - ref_value[H2D_FEI_DY]);
+      double error_squared = sqr(proj_value[H2D_H1FE_VALUE] - ref_value[H2D_H1FE_VALUE])
+        + sqr(proj_value[H2D_H1FE_DX] - ref_value[H2D_H1FE_DX])
+        + sqr(proj_value[H2D_H1FE_DY] - ref_value[H2D_H1FE_DY]);
 
       total_error_squared += gip_pt[H2D_GIP2D_W] * error_squared;
     }

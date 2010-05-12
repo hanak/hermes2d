@@ -29,10 +29,10 @@ TestCase::~TestCase() { delete[] m_poly_matrix; };
 
 bool TestCase::should_match(const RefinementSelectors::OptimumSelector::Cand& cand) {
   int order_h = H2D_GET_H_ORDER(m_func_quad_order), order_v = H2D_GET_V_ORDER(m_func_quad_order);
-  int num_sons = cand.get_num_sons();
-  for(int i = 0; i < num_sons; i++) {
-    int son_order_h = H2D_GET_H_ORDER(cand.p[i]), son_order_v = H2D_GET_V_ORDER(cand.p[i]);
-    if (son_order_h < order_h || son_order_v < order_v)
+  int num_elems = cand.get_num_elems();
+  for(int i = 0; i < num_elems; i++) {
+    int elem_order_h = H2D_GET_H_ORDER(cand.p[i]), elem_order_v = H2D_GET_V_ORDER(cand.p[i]);
+    if (elem_order_h < order_h || elem_order_v < order_v)
       return false;
   }
   return true;

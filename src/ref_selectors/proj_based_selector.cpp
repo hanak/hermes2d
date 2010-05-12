@@ -10,6 +10,7 @@ namespace RefinementSelectors {
   
   ProjBasedSelector::ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
     : OptimumSelector(cand_list, conv_exp, max_order, shapeset, vertex_order, edge_bubble_order)
+    , error_weight_h(H2DRS_DEFAULT_ERR_WEIGHT_H), error_weight_p(H2DRS_DEFAULT_ERR_WEIGHT_P), error_weight_aniso(H2DRS_DEFAULT_ERR_WEIGHT_ANISO)
     , rhs_cache(NULL)
   {
     //clear matrix cache
@@ -35,6 +36,12 @@ namespace RefinementSelectors {
         }
   }
 
+  void ProjBasedSelector::set_error_weights(double weight_h, double weight_p, double weight_aniso) {
+    error_weight_h = weight_h;
+    error_weight_p = weight_p;
+    error_weight_aniso = weight_aniso;
+  }
+
   void ProjBasedSelector::evaluate_cands_error(Element* e, Solution* rsln, double* avg_error, double* dev_error) {
     bool tri = e->is_triangle();
 
@@ -43,7 +50,7 @@ namespace RefinementSelectors {
     update_cands_info(info_h, info_p, info_aniso);
 
     // calculate (partial) projection errors
-    SonProjectionError herr[4], anisoerr[4], perr;
+    CandElemProjError herr[4], anisoerr[4], perr;
     calc_projection_errors(e, info_h, info_p, info_aniso, rsln, herr, perr, anisoerr);
 
     //evaluate errors and dofs
@@ -53,21 +60,22 @@ namespace RefinementSelectors {
     Cand& unrefined_c = candidates[0];
     for (unsigned i = 0; i < candidates.size(); i++) {
       Cand& c = candidates[i];
+      double error_squared = 0.0;
       if (tri) { //triangle
         switch(c.split) {
         case H2D_REFINEMENT_H:
-          c.error = 0.0;
+          error_squared = 0.0;
           for (int j = 0; j < H2D_MAX_ELEMENT_SONS; j++) {
             int order = H2D_GET_H_ORDER(c.p[j]);
-            c.error += herr[j][order][order];
+            error_squared += herr[j][order][order];
           }
-          c.error *= 0.25; //element of a candidate occupies 1/4 of the reference domain defined over a candidate
+          error_squared *= 0.25; //element of a candidate occupies 1/4 of the reference domain defined over a candidate
           break;
 
         case H2D_REFINEMENT_P:
           {
             int order = H2D_GET_H_ORDER(c.p[0]);
-            c.error = perr[order][order];
+            error_squared = perr[order][order];
           }
           break;
 
@@ -78,28 +86,28 @@ namespace RefinementSelectors {
       else { //quad
         switch(c.split) {
         case H2D_REFINEMENT_H:
-          c.error = 0.0;
+          error_squared = 0.0;
           for (int j = 0; j < H2D_MAX_ELEMENT_SONS; j++) {
             int order_h = H2D_GET_H_ORDER(c.p[j]), order_v = H2D_GET_V_ORDER(c.p[j]);
-            c.error += herr[j][order_h][order_v];
+            error_squared += herr[j][order_h][order_v];
           }
-          c.error *= 0.25; //element of a candidate occupies 1/4 of the reference domain defined over a candidate
+          error_squared *= 0.25; //element of a candidate occupies 1/4 of the reference domain defined over a candidate
           break;
 
         case H2D_REFINEMENT_ANISO_H:
         case H2D_REFINEMENT_ANISO_V:
           {
-            c.error = 0.0;
+            error_squared = 0.0;
             for (int j = 0; j < 2; j++)
-              c.error += anisoerr[(c.split == H2D_REFINEMENT_ANISO_H) ? j : j+2][H2D_GET_H_ORDER(c.p[j])][H2D_GET_V_ORDER(c.p[j])];
-            c.error *= 0.5;  //element of a candidate occupies 1/2 of the reference domain defined over a candidate
+              error_squared += anisoerr[(c.split == H2D_REFINEMENT_ANISO_H) ? j : j+2][H2D_GET_H_ORDER(c.p[j])][H2D_GET_V_ORDER(c.p[j])];
+            error_squared *= 0.5;  //element of a candidate occupies 1/2 of the reference domain defined over a candidate
           }
           break;
 
         case H2D_REFINEMENT_P:
           {
             int order_h = H2D_GET_H_ORDER(c.p[0]), order_v = H2D_GET_V_ORDER(c.p[0]);
-            c.error = perr[order_h][order_v];
+            error_squared = perr[order_h][order_v];
           }
           break;
 
@@ -108,9 +116,20 @@ namespace RefinementSelectors {
         }
       }
 
-      c.error = sqrt(c.error);
-      if (!i || c.error <= unrefined_c.error)
-      {
+      //calculate error from squared error
+      c.error = sqrt(error_squared);
+
+      //apply weights
+      switch(c.split) {
+      case H2D_REFINEMENT_H: c.error *= error_weight_h; break;
+      case H2D_REFINEMENT_ANISO_H:
+      case H2D_REFINEMENT_ANISO_V: c.error *= error_weight_aniso; break;
+      case H2D_REFINEMENT_P: c.error *= error_weight_p; break;
+      default: error("Unknown split type \"%d\" at candidate %d", c.split, i);
+      }
+
+      //calculate statistics
+      if (i == 0 || c.error <= unrefined_c.error) {
         sum_err += log10(c.error);
         sum_sqr_err += sqr(log10(c.error));
         num_processed++;
@@ -121,7 +140,7 @@ namespace RefinementSelectors {
     *dev_error = sqrt(sum_sqr_err/num_processed - sqr(*avg_error)); // deviation is square root of variance
   }
 
-  void ProjBasedSelector::calc_projection_errors(Element* e, const CandsInfo& info_h, const CandsInfo& info_p, const CandsInfo& info_aniso, Solution* rsln, SonProjectionError herr[4], SonProjectionError perr, SonProjectionError anisoerr[4]) {
+  void ProjBasedSelector::calc_projection_errors(Element* e, const CandsInfo& info_h, const CandsInfo& info_p, const CandsInfo& info_aniso, Solution* rsln, CandElemProjError herr[4], CandElemProjError perr, CandElemProjError anisoerr[4]) {
     assert_msg(info_h.is_empty() || (H2D_GET_H_ORDER(info_h.max_quad_order) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(info_h.max_quad_order) <= H2DRS_MAX_ORDER), "Maximum allowed order of a son of H-candidate is %d but order (H:%d,V:%d) requested.", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(info_h.max_quad_order), H2D_GET_V_ORDER(info_h.max_quad_order));
     assert_msg(info_p.is_empty() || (H2D_GET_H_ORDER(info_p.max_quad_order) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(info_p.max_quad_order) <= H2DRS_MAX_ORDER), "Maximum allowed order of a son of P-candidate is %d but order (H:%d,V:%d) requested.", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(info_p.max_quad_order), H2D_GET_V_ORDER(info_p.max_quad_order));
     assert_msg(info_aniso.is_empty() || (H2D_GET_H_ORDER(info_aniso.max_quad_order) <= H2DRS_MAX_ORDER && H2D_GET_V_ORDER(info_aniso.max_quad_order) <= H2DRS_MAX_ORDER), "Maximum allowed order of a son of ANISO-candidate is %d but order (H:%d,V:%d) requested.", H2DRS_MAX_ORDER, H2D_GET_H_ORDER(info_aniso.max_quad_order), H2D_GET_V_ORDER(info_aniso.max_quad_order));
@@ -171,7 +190,7 @@ namespace RefinementSelectors {
       const double my[4] = { 1.0, 1.0, 2.0, 2.0}; //scale coefficients of dy for Y-axis due to trasformations
       const int sons[4][2] = { {0,1}, {3,2}, {0,3}, {1,2} }; //indices of sons for sub-areas
       const int tr[4][2]   = { {6,7}, {6,7}, {4,5}, {4,5} }; //indices of ref. domain transformations for sub-areas
-      for(int version = 0; version < 4; version++) { // 2 sons for vertical split, 2 sons for horizontal split
+      for(int version = 0; version < 4; version++) { // 2 elements for vertical split, 2 elements for horizontal split
         Trf* sub_trfs[2] = { &quad_trf[tr[version][0]], &quad_trf[tr[version][1]] };
         Element* sub_domains[2] = { base_element->sons[sons[version][0]], base_element->sons[sons[version][1]] };
         scalar **sub_rval[2] = { rval[sons[version][0]], rval[sons[version][1]] };
@@ -202,7 +221,7 @@ namespace RefinementSelectors {
     , double3* gip_points, int num_gip_points
     , const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my
     , const CandsInfo& info
-    , SonProjectionError errors_squared
+    , CandElemProjError errors_squared
     ) {
     //allocate space
     int max_num_shapes = next_order_shape[mode][current_max_order];
@@ -242,7 +261,7 @@ namespace RefinementSelectors {
       if (num_shapes > 0) {
         //calculate projection matrix
         if (proj_matrices[order_h][order_v] == NULL)
-          proj_matrices[order_h][order_v] = build_projection_matrix(*shapeset, gip_points, num_gip_points, shape_inxs, num_shapes);
+          proj_matrices[order_h][order_v] = build_projection_matrix(gip_points, num_gip_points, shape_inxs, num_shapes);
         copy_matrix(proj_matrix, proj_matrices[order_h][order_v], num_shapes, num_shapes); //copy projection matrix because original matrix will be modified
 
         //build right side (fill cache values that are missing)
@@ -255,7 +274,7 @@ namespace RefinementSelectors {
             int shape_inx = shape_inxs[k];
             ValueCacheItem<scalar>& shape_rhs_cache = rhs_cache[shape_inx];
             if (!shape_rhs_cache.is_valid())
-              shape_rhs_cache.set(shape_rhs_cache.get() + evaluate_rsh_subdomain(sub_domain, sub_gip, sub_trf, shape_inx));
+              shape_rhs_cache.set(shape_rhs_cache.get() + evaluate_rhs_subdomain(sub_domain, sub_gip, sub_trf, shape_inx));
           }
         }
 

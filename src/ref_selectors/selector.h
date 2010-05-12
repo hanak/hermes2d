@@ -22,7 +22,30 @@ class ElementToRefine;
 struct Element;
 class Solution;
 
-/// \defgroup g_selectors Refinement Selectors
+/** \defgroup g_selectors Refinement Selectors
+ *  \brief Refinement selectors allows to select a refinement
+ *  according to an error of a candidate.
+ *
+ *  The error is calculate by comparing a candidate projected
+ *  to a reference solution with the reference solution. All selectors
+ *  has to be derived from the class Selector. An instance of
+ *  a selector should be created outside the adaptivity loop
+ *  in order to save initialization time.
+ *
+ *  Currently available selectors:
+ *  - static selectors: Selectors that does not support
+ *    a mechanism for selecting an optimal refinement from
+ *    a list of refinements.
+ *    -# HOnlySelector
+ *    -# POnlySelector
+ *  - optimum selectors: Selectors that are able to select
+ *    a refinement from a provided list of possibilities
+ *    which minimizes the error. All optimum selectors have
+ *    to be derived from the class OptimumSelector.
+ *    -# H1ProjBasedSelector
+ *    -# L2ProjBasedSelector
+ *    \if H2D_COMPLEX # HcurlProjBasedSelector \endif
+ */
 
 #define H2DRS_DEFAULT_ORDER -1 ///< A default order. Used to indicate an unkonwn order or a maximum support order.  \ingroup g_selectors
 #define H2DRS_MAX_ORDER 9 ///< A maximum order suported by refinement selectors. \ingroup g_selectors

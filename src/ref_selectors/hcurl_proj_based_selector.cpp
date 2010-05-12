@@ -5,11 +5,6 @@
 #include "../element_to_refine.h"
 #include "hcurl_proj_based_selector.h"
 
-#define H2D_RV_VALUE0 0
-#define H2D_RV_VALUE1 1
-#define H2D_RV_D1DX 2
-#define H2D_RV_D0DY 3
-
 #ifdef H2D_COMPLEX
 
 namespace RefinementSelectors {
@@ -34,16 +29,15 @@ namespace RefinementSelectors {
 
     //fill with values
     scalar** rvals_son = precalc_rvals[inx_son];
-    rvals_son[H2D_RV_VALUE0] = rsln->get_fn_values(0);
-    rvals_son[H2D_RV_VALUE1] = rsln->get_fn_values(1);
-    rvals_son[H2D_RV_D1DX] = rsln->get_dx_values(1);
-    rvals_son[H2D_RV_D0DY] = rsln->get_dy_values(0);
+    rvals_son[H2D_HCFE_VALUE0] = rsln->get_fn_values(0);
+    rvals_son[H2D_HCFE_VALUE1] = rsln->get_fn_values(1);
+    rvals_son[H2D_HCFE_DX1] = rsln->get_dx_values(1);
+    rvals_son[H2D_HCFE_DY0] = rsln->get_dy_values(0);
 
     return rvals_son;
   }
 
-  double** HcurlProjBasedSelector::build_projection_matrix(Shapeset& shapeset,
-    double3* gip_points, int num_gip_points,
+  double** HcurlProjBasedSelector::build_projection_matrix(double3* gip_points, int num_gip_points,
     const int* shape_inx, const int num_shapes) {
     //allocate
     double** matrix = new_matrix<double>(num_shapes, num_shapes);
@@ -59,12 +53,12 @@ namespace RefinementSelectors {
         double value = 0.0;
         for(int j = 0; j < num_gip_points; j++) {
           double gip_x = gip_points[j][H2D_GIP2D_X], gip_y = gip_points[j][H2D_GIP2D_Y];
-          double value0[2] = { shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0), shapeset.get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 1) };
-          double value1[2] = { shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0), shapeset.get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 1) };
-          double d1dx0 = shapeset.get_value(H2D_FEI_DX, shape0_inx, gip_x, gip_y, 1);
-          double d1dx1 = shapeset.get_value(H2D_FEI_DX, shape1_inx, gip_x, gip_y, 1);
-          double d0dy0 = shapeset.get_value(H2D_FEI_DY, shape0_inx, gip_x, gip_y, 0);
-          double d0dy1 = shapeset.get_value(H2D_FEI_DY, shape1_inx, gip_x, gip_y, 0);
+          double value0[2] = { shapeset->get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 0), shapeset->get_value(H2D_FEI_VALUE, shape0_inx, gip_x, gip_y, 1) };
+          double value1[2] = { shapeset->get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 0), shapeset->get_value(H2D_FEI_VALUE, shape1_inx, gip_x, gip_y, 1) };
+          double d1dx0 = shapeset->get_value(H2D_FEI_DX, shape0_inx, gip_x, gip_y, 1);
+          double d1dx1 = shapeset->get_value(H2D_FEI_DX, shape1_inx, gip_x, gip_y, 1);
+          double d0dy0 = shapeset->get_value(H2D_FEI_DY, shape0_inx, gip_x, gip_y, 0);
+          double d0dy1 = shapeset->get_value(H2D_FEI_DY, shape1_inx, gip_x, gip_y, 0);
           double curl0 = d1dx0 - d0dy0;
           double curl1 = d1dx1 - d0dy1;
 
@@ -78,7 +72,7 @@ namespace RefinementSelectors {
     return matrix;
   }
 
-  scalar HcurlProjBasedSelector::evaluate_rsh_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
+  scalar HcurlProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
     double coef_curl = std::abs(sub_trf.coef_mx * sub_trf.coef_my);
     scalar total_value = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
@@ -93,9 +87,9 @@ namespace RefinementSelectors {
       scalar shape_curl = shapeset->get_dx_value(shape_inx, ref_x, ref_y, 1) - shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
 
       //get value of ref. solution
-      scalar ref_value0 = sub_trf.coef_mx * sub_gip.rvals[H2D_RV_VALUE0][gip_inx];
-      scalar ref_value1 = sub_trf.coef_my * sub_gip.rvals[H2D_RV_VALUE1][gip_inx];
-      scalar ref_curl = coef_curl * (sub_gip.rvals[H2D_RV_D1DX][gip_inx] - sub_gip.rvals[H2D_RV_D0DY][gip_inx]); //coef_curl * curl
+      scalar ref_value0 = sub_trf.coef_mx * sub_gip.rvals[H2D_HCFE_VALUE0][gip_inx];
+      scalar ref_value1 = sub_trf.coef_my * sub_gip.rvals[H2D_HCFE_VALUE1][gip_inx];
+      scalar ref_curl = coef_curl * (sub_gip.rvals[H2D_HCFE_DX1][gip_inx] - sub_gip.rvals[H2D_HCFE_DY0][gip_inx]); //coef_curl * curl
 
       //evaluate a right-hand value
       scalar value = (shape_value0 * ref_value0)
@@ -126,9 +120,9 @@ namespace RefinementSelectors {
       }
 
       //get value of ref. solution
-      scalar ref_value0 = sub_trf.coef_mx * sub_gip.rvals[H2D_RV_VALUE0][gip_inx];
-      scalar ref_value1 = sub_trf.coef_my * sub_gip.rvals[H2D_RV_VALUE1][gip_inx];
-      scalar ref_curl = coef_curl * (sub_gip.rvals[H2D_RV_D1DX][gip_inx] - sub_gip.rvals[H2D_RV_D0DY][gip_inx]); //coef_curl * curl
+      scalar ref_value0 = sub_trf.coef_mx * sub_gip.rvals[H2D_HCFE_VALUE0][gip_inx];
+      scalar ref_value1 = sub_trf.coef_my * sub_gip.rvals[H2D_HCFE_VALUE1][gip_inx];
+      scalar ref_curl = coef_curl * (sub_gip.rvals[H2D_HCFE_DX1][gip_inx] - sub_gip.rvals[H2D_HCFE_DY0][gip_inx]); //coef_curl * curl
 
       //evaluate error
       double error_squared = sqr(proj_value0 - ref_value0)

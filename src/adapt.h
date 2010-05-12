@@ -22,7 +22,23 @@
 #include "integrals_h1.h"
 #include "ref_selectors/selector.h"
 
-/// \defgroup g_adapt Adaptivity
+/** \defgroup g_adapt Adaptivity
+ *  \brief Adaptivity provides framework for modyfying elements in order to decrease errors of the solution.
+ *
+ *  Adaptivity classes calculates error of every element.
+ *  An error of an element is calculated by comparing an
+ *  coarse solution with a reference solution. Errors of
+ *  elements defines an order in which elements are examined.
+ *  During examining an element, a refinement is proposed
+ *  and the element is refined if applicable. The refinement
+ *  is proposed through refinement selectors, see \ref g_selectors.
+ *
+ *  All adaptivity classes have to be derived from the class Adapt.
+ *  Curently available classes are:
+ *  - H1Adapt
+ *  - L2Adapt
+ *    \if H2D_COMPLEX # -HcurlAdapt \endif
+ */
 
 #define H2D_MAX_COMPONENTS 10 ///< A maximum number of components.
 
