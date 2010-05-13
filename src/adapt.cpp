@@ -519,6 +519,7 @@ scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
   err1->subtract(*v1);
   err2->subtract(*v2);
 
+  //DEBUG to remove
   for (int i = 0; i < np; i++) {
     //prepare_eval_error_value(i, *err1, *v1);
     //prepare_eval_error_value(i, *err2, *v2);

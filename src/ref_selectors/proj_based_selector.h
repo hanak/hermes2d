@@ -25,9 +25,9 @@ namespace RefinementSelectors {
    *   The maximum allowed order is ::H2DRS_MAX_ORDER + 1. */
   typedef double CandElemProjError[H2DRS_MAX_ORDER+2][H2DRS_MAX_ORDER+2];
 
-# define H2DRS_DEFAULT_ERR_WEIGHT_H 2.0 ///< A default multiplicative coefficient of an error of a H-candidate. \ingroup g_selectors
+# define H2DRS_DEFAULT_ERR_WEIGHT_H 1.0 ///< A default multiplicative coefficient of an error of a H-candidate. \ingroup g_selectors
 # define H2DRS_DEFAULT_ERR_WEIGHT_P 1.0 ///< A default multiplicative coefficient of an error of a P-candidate. \ingroup g_selectors
-# define H2DRS_DEFAULT_ERR_WEIGHT_ANISO 1.414214 ///< A default multiplicative coefficient of an error of a ANISO-candidate. \ingroup g_selectors
+# define H2DRS_DEFAULT_ERR_WEIGHT_ANISO 1.0 ///< A default multiplicative coefficient of an error of a ANISO-candidate. \ingroup g_selectors
 
   /// A general projection-based selector. \ingroup g_selectors
   /** Calculates an error of a candidate as a combination of errors of

@@ -228,11 +228,6 @@ protected:
 
 };
 
-
-/// Creates a new shapeset. Internal. ("Shapeset factory")
-//Shapeset* hermes2d_create_shapeset(int id);
-
-
 // TODO : promyslet moznost ulozeni shapesetu jako tabulky monomialnich koeficientu
 // - mozna efektivnejsi nez stavajici kod
 // - monolitictejsi, elegantnejsi

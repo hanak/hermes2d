@@ -549,6 +549,16 @@ void LinSystem::assemble(bool rhsonly)
           }
         }
 
+        //DEBUG-BEGIN
+        for(int i = 0; i < am->cnt; i++) {
+          for(int k = 0; k < an->cnt; k++) {
+            if ((am->dof[i] == 11 && an->dof[k] == 2) || (am->dof[i] == 2 && an->dof[k] == 11)) {
+              debug_log("A");
+            }
+          }
+        }
+        //DEBUG-END
+
         // insert the local stiffness matrix into the global one
         insert_block(mat, am->dof, an->dof, am->cnt, an->cnt);
 
@@ -927,6 +937,12 @@ bool LinSystem::solve(int n, ...)
   Vec = (scalar*) malloc(ndofs * sizeof(scalar));
   solver->solve(slv_ctx, ndofs, Ap, Ai, Ax, false, RHS, Vec);
   report_time("LinSystem solved in %g s", cpu_time.tick().last());
+
+  //DEBUG-BEGIN
+  save_sparse_matrix_octave("A", Ax, Ap, Ai, ndofs);
+  save_matrix_octave("RHS", &RHS, 1, ndofs);
+  save_matrix_octave("Vec", &Vec, 1, ndofs);
+  //DEBUG-END
 
   // initialize the Solution classes
   va_list ap;

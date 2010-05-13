@@ -79,16 +79,16 @@ namespace RefinementSelectors {
       double ref_y = gip_pt[H2D_GIP2D_Y] * sub_trf.trf->m[1] + sub_trf.trf->t[1];
 
       //get value of a shape function
-      scalar shape_value[3] = {0, 0, 0};
+      scalar shape_value[H2D_H1FE_NUM] = {0, 0, 0};
       shape_value[H2D_H1FE_VALUE] = shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
       shape_value[H2D_H1FE_DX] = shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
       shape_value[H2D_H1FE_DY] = shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
 
       //get value of ref. solution
-      scalar ref_value[3];
+      scalar ref_value[H2D_H1FE_NUM];
       ref_value[H2D_H1FE_VALUE] = sub_gip.rvals[H2D_H1FE_VALUE][gip_inx];
       ref_value[H2D_H1FE_DX] = sub_trf.coef_mx * sub_gip.rvals[H2D_H1FE_DX][gip_inx];
-      ref_value[H2D_H1FE_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_FEI_DY][gip_inx];
+      ref_value[H2D_H1FE_DY] = sub_trf.coef_my * sub_gip.rvals[H2D_H1FE_DY][gip_inx];
 
       //evaluate a right-hand value
       scalar value = (shape_value[H2D_H1FE_VALUE] * ref_value[H2D_H1FE_VALUE])
@@ -109,7 +109,7 @@ namespace RefinementSelectors {
       double ref_y = gip_pt[H2D_GIP2D_Y] * sub_trf.trf->m[1] + sub_trf.trf->t[1];
 
       //calculate value of projected solution
-      std::vector<scalar> proj_value(H2D_H1FE_NUM, 0);
+      scalar proj_value[H2D_H1FE_NUM] = {0, 0, 0};
       for(int i = 0; i < elem_proj.num_shapes; i++) {
         int shape_inx = elem_proj.shape_inxs[i];
         proj_value[H2D_H1FE_VALUE] += elem_proj.shape_coefs[i] * shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);

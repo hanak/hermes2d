@@ -213,8 +213,8 @@ bool init_l2(bool tri) {
 /// Prints failure matrix
 void show_fail_matrix(int** fail_matrix, const std::string& space_name, const int max_quad_order) {
   const int max_order_h = H2D_GET_H_ORDER(max_quad_order), max_order_v = H2D_GET_V_ORDER(max_quad_order);
-#define NUMBER_W 2
-#define NUMBER_FMT "%02d"
+#define NUMBER_W 2 ///< A size of a cell in the table.
+#define NUMBER_FMT "%02d" ///< A format for writing orders.
   char buff_number[1024];
 
   info("!Test summary (V/H): %s", space_name.c_str());

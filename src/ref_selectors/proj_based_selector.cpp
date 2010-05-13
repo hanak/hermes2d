@@ -49,7 +49,7 @@ namespace RefinementSelectors {
     CandsInfo info_h, info_p, info_aniso;
     update_cands_info(info_h, info_p, info_aniso);
 
-    // calculate (partial) projection errors
+    // calculate squared projection errors of elements of candidates
     CandElemProjError herr[4], anisoerr[4], perr;
     calc_projection_errors(e, info_h, info_p, info_aniso, rsln, herr, perr, anisoerr);
 

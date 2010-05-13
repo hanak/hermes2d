@@ -3,20 +3,23 @@
 
 using namespace RefinementSelectors;
 
-///  This test makes sure that the benchmark "lshape" works correctly.
-///
-///  Parameters
-///  - P_INIT=1
-///  - THERSHOLD=0.3
-///  - STRATEGY=0
-///  - CAND_LIST=HP_ANISO
-///  - MESH_REGULARITY=-1
-///  - ERR_STOP=0.1
-///  - CONV_EXP=1.0
-///  - NDOF_STOP=40000
-///
-///  Results for given parameters
-///  - DOFs: 595
+/** \addtogroup t_bench_lshape Benchmarks/LShape
+ *  \{
+ *  \brief This test makes sure that the benchmark "lshape" works correctly.
+ *
+ *  \section s_params Parameters
+ *  - P_INIT=1
+ *  - THERSHOLD=0.3
+ *  - STRATEGY=0
+ *  - CAND_LIST=HP_ANISO
+ *  - MESH_REGULARITY=-1
+ *  - ERR_STOP=0.1
+ *  - CONV_EXP=1.0
+ *  - NDOF_STOP=40000
+ *
+ *  \section s_res Results
+ *  - DOFs: 595
+ */
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
 const double THRESHOLD = 0.3;     // This is a quantitative parameter of the adapt(...) function and
