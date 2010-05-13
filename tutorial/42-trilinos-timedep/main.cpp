@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
   ScalarView Tview("Temperature", 0, 0, 450, 600);
   Tview.set_min_max_range(10,20);
 
-	begin_time();
+  cpu_time.tick(H2D_SKIP);
 
   double total_time = 0.0;
   cpu_time.tick_reset();
@@ -167,10 +167,10 @@ int main(int argc, char* argv[])
     else
       error("Failed.");
 
-		pause_time();
+    cpu_time.tick();
     info("Number of nonlin iters: %d (norm of residual: %g)", solver.get_num_iters(), solver.get_residual());
     info("Total number of iters in linsolver: %d (achieved tolerance in the last step: %g)", solver.get_num_lin_iters(), solver.get_achieved_tol());
-    resume_time();
+    cpu_time.tick(H2D_SKIP);
   }
 
   info("Total running time: %g", cpu_time.accumulated());

@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 
   cpu_time.tick(H2D_SKIP);
   info("Projecting initial solution");
-  begin_time();
+  cpu_time.tick(); 
   Solution init;  init.set_zero(&mesh);
   Projection proj(1, &init, &space, &pss);
   proj.set_solver(&umfpack);
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
   double proj_time = cpu_time.tick().last();
 
   info("Number of DOF: %d", ndof);
-  begin_time();
+  cpu_time.tick(H2D_SKIP); 
   WeakForm wf2(1, jfnk ? true : false);
   if (!jfnk || (jfnk && precond == 1)) wf2.add_jacform(0, 0, callback(jacobian_form_nox), H2D_SYM);
   if (jfnk && precond == 2) wf2.add_jacform(0, 0, callback(precond_form_nox), H2D_SYM);
@@ -218,10 +218,10 @@ int main(int argc, char **argv)
     vec = solver.get_solution();
     sln2.set_fe_solution(&space, &pss, vec);
 
-	cpu_time.tick();
+    cpu_time.tick();
     info("Number of nonlin iters: %d (norm of residual: %g)", solver.get_num_iters(), solver.get_residual());
     info("Total number of iters in linsolver: %d (achieved tolerance in the last step: %g)", solver.get_num_lin_iters(), solver.get_achieved_tol());
-	cpu_time.tick(H2D_SKIP);
+    cpu_time.tick(H2D_SKIP);
   }
   else
     error("Failed.");
