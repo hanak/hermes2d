@@ -40,7 +40,7 @@ namespace RefinementSelectors {
       H2D_L2FE_NUM = 1 ///< A total considered function expansion.
     };
 
-    const static int H2DRS_MAX_L2_ORDER = H2DRS_MAX_ORDER; ///< A maximum used order in this L2-space selector.
+    static const int H2DRS_MAX_L2_ORDER; ///< A maximum used order in this L2-space selector.
 
     scalar* precalc_rvals[H2D_MAX_ELEMENT_SONS][H2D_L2FE_NUM]; ///< Array of arrays of precalculates. The first index is an index of a subdomain, the second index is an index of a function expansion (see enum LocalFuncExpansion).
 

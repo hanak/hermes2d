@@ -48,7 +48,7 @@ namespace RefinementSelectors {
 
     scalar* precalc_rvals[H2D_MAX_ELEMENT_SONS][H2D_HCFE_NUM]; ///< Array of arrays of precalculates. The first index is an index of a subdomain, the second index is an index of a function expansion (see enum LocalFuncExpansion).
 
-    const static int H2DRS_MAX_HCURL_ORDER = 6; ///< A maximum used order in this Hcurl-space selector. \todo Replace the numerical constant after a symbolic constant is added to Hcurl shapeset which would declare the maximum supported order.
+    static const int H2DRS_MAX_HCURL_ORDER; ///< A maximum used order in this Hcurl-space selector. \todo Replace the numerical constant after a symbolic constant is added to Hcurl shapeset which would declare the maximum supported order.
 
     /// Sets OptimumSelector::current_max_order and OptimumSelector::current_min_order.
     /** The default order range is [1, ::H2DRS_MAX_HCURL_ORDER]. If curved, the upper boundary of the range becomes lower.
