@@ -189,9 +189,8 @@ namespace RefinementSelectors {
     // precalculate values of shape functions
     TrfShape empty_shape_vals;
     if (!cached_shape_vals_valid[mode]) {
-      precalc_ortho_shapes(mode, gip_points, num_gip_points, trfs, num_noni_trfs, shape_indices[mode], max_shape_inx[mode], cached_shape_ortho_vals[mode]);
-      if (mode == H2D_MODE_QUAD)
-        precalc_shapes(mode, gip_points, num_gip_points, trfs, num_noni_trfs, shape_indices[mode], max_shape_inx[mode], cached_shape_vals[mode]);
+      precalc_ortho_shapes(gip_points, num_gip_points, trfs, num_noni_trfs, shape_indices[mode], max_shape_inx[mode], cached_shape_ortho_vals[mode]);
+      precalc_shapes(gip_points, num_gip_points, trfs, num_noni_trfs, shape_indices[mode], max_shape_inx[mode], cached_shape_vals[mode]);
       cached_shape_vals_valid[mode] = true;
     }
     TrfShape& svals = cached_shape_vals[mode];
@@ -219,7 +218,7 @@ namespace RefinementSelectors {
         Trf* sub_trfs[2] = { &trfs[tr[version][0]], &trfs[tr[version][1]] };
         Element* sub_domains[2] = { base_element->sons[sons[version][0]], base_element->sons[sons[version][1]] };
         scalar **sub_rval[2] = { rval[sons[version][0]], rval[sons[version][1]] };
-        std::vector<TrfShapeExp>* sub_svals[2] = { &svals[sons[version][0]], &svals[sons[version][1]] };
+        std::vector<TrfShapeExp>* sub_svals[2] = { &svals[tr[version][0]], &svals[tr[version][1]] };
         std::vector<TrfShapeExp>* sub_ortho_svals[2] = { &ortho_svals[sons[version][0]], &ortho_svals[sons[version][1]] };
         calc_error_cand_element(mode, gip_points, num_gip_points
           , 2, sub_domains, sub_trfs, sub_rval

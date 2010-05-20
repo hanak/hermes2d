@@ -4,21 +4,22 @@
 using namespace RefinementSelectors;
 
 ///  This test makes sure that the benchmark "layer" works correctly.
-///
-///  Parameters
-///  - INIT_REF_NUM=2
-///  - P_INIT=1
-///  - THRESHOLD=0.3
-///  - STRATEGY=0
-///  - CAND_LIST=HP_ANISO
-///  - MESH_REGULARITY=-1
-///  - CONV_EXP=1.0
-///  - ERR_STOP=0.1
-///  - NDOF_STOP=60000
-///  - SLOPE = 60
-///
-///  Results for given parameters
-///  - DOFs: 2798
+/**
+ *   Parameters
+ *   - INIT_REF_NUM=2
+ *   - P_INIT=1
+ *   - THRESHOLD=0.3
+ *   - STRATEGY=0
+ *   - CAND_LIST=HP_ANISO
+ *   - MESH_REGULARITY=-1
+ *   - CONV_EXP=1.0
+ *   - ERR_STOP=0.1
+ *   - NDOF_STOP=60000
+ *   - SLOPE = 60
+ *
+ *   Results for given parameters
+ *   - DOFs: 2878
+ */
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
 const int INIT_REF_NUM = 2;       // Number of initial uniform mesh refinements.

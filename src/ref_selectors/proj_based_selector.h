@@ -61,17 +61,28 @@ namespace RefinementSelectors {
 
   protected: //evaluated shape basis
     class TrfShapeExp {
+      int num_gip; ///< A number of integration points.
       int num_expansion; ///< A number of expansions.
       double** values; ///< Values. The first index is index of a functions expansion, the second index is an index of a an integration point.
     public:
       TrfShapeExp() : num_expansion(0), values(NULL) {};
-      TrfShapeExp(int num_expansion, int num_gip) : num_expansion(num_expansion), values(new_matrix<double>(num_expansion, num_gip)) {};
+      void allocate(int num_expansion, int num_gip) {
+        delete[] values;
+        values = new_matrix<double>(num_expansion, num_gip);
+        this->num_expansion = num_expansion;
+        this->num_gip = num_gip;
+      };
       virtual ~TrfShapeExp() { delete[] values; };
       inline double* operator[](int inx_expansion) {
         assert_msg(inx_expansion < num_expansion, "Index (%d) of an expansion out of range [0, %d]", inx_expansion, num_expansion-1);
         return values[inx_expansion];
       };
       inline bool empty() { return values == NULL; };
+      const TrfShapeExp& operator=(const TrfShapeExp& other) {
+        delete[] values; values = NULL;
+        error_if(other.values != NULL, "Unable to a non-empty values. Use references instead.");
+        return *this;
+      };
     };
 
     /// Evaluated shapes for all possible transformations for all points. The first index is a transformation, the second index is an index of a shape function.
@@ -86,10 +97,10 @@ namespace RefinementSelectors {
      *  \param[in] trfs A transformations. The array has to have ::H2D_TRF_NUM elements.
      *  \param[in] num_noni_trfs A number of transformations which are not identity.
      */
-    virtual void precalc_shapes(const int mode, const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& svals) {};
+    virtual void precalc_shapes(const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& svals) {};
 
     /// Calculates values of orthogonalized shape function at GIP for all transformations.
-    virtual void precalc_ortho_shapes(const int mode, const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& ortho_svals) {};
+    virtual void precalc_ortho_shapes(const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& ortho_svals) {};
 
   protected:
     /// Constructor.
