@@ -25,9 +25,9 @@ namespace RefinementSelectors {
 
   void H1ProjBasedSelector::precalc_shapes(const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& svals) {
     //for all transformations
-    bool quit = false;
+    bool done = false;
     int inx_trf = 0;
-    while (!quit && inx_trf < H2D_TRF_NUM) {
+    while (!done && inx_trf < H2D_TRF_NUM) {
       //prepare data for processing
       const Trf& trf = trfs[inx_trf];
       std::vector<TrfShapeExp>& trf_svals = svals[inx_trf];
@@ -59,12 +59,96 @@ namespace RefinementSelectors {
 
       //move to the next transformation
       if (inx_trf == H2D_TRF_IDENTITY)
-        quit = true;
+        done = true;
       else {
         inx_trf++;
         if (inx_trf >= num_noni_trfs) //if all transformations were processed, move to the identity transformation
           inx_trf = H2D_TRF_IDENTITY;
       }
+    }
+    error_if(!done, "All transformation processed but identity transformation not found."); //identity transformation has to be the last transformation
+  }
+
+  void H1ProjBasedSelector::precalc_ortho_shapes(const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& svals) {
+    //calculate values
+    precalc_shapes(gip_points, num_gip_points, trfs, num_noni_trfs, shapes, max_shape_inx, svals);
+
+    //calculate orthonormal basis
+    const int num_shapes = (int)shapes.size();
+    for(int i = 0; i < num_shapes; i++) {
+      const int inx_shape_i = shapes[i].inx;
+
+      //orthogonalize
+      for(int j = 0; j < i; j++) {
+        const int inx_shape_j = shapes[j].inx;
+
+        //calculate product of non-transformed functions
+        double product = 0.0;
+        for(int k = 0; k < num_gip_points; k++) {
+          double sum = 0.0;
+          sum += svals[H2D_TRF_IDENTITY][inx_shape_i][H2D_H1FE_VALUE][k] * svals[H2D_TRF_IDENTITY][inx_shape_j][H2D_H1FE_VALUE][k];
+          sum += svals[H2D_TRF_IDENTITY][inx_shape_i][H2D_H1FE_DX][k] * svals[H2D_TRF_IDENTITY][inx_shape_j][H2D_H1FE_DX][k];
+          sum += svals[H2D_TRF_IDENTITY][inx_shape_i][H2D_H1FE_DY][k] * svals[H2D_TRF_IDENTITY][inx_shape_j][H2D_H1FE_DY][k];
+          product += gip_points[k][H2D_GIP2D_W] * sum;
+        }
+
+        //for all transformations
+        int inx_trf = 0;
+        bool done = false;
+        while (!done && inx_trf < H2D_TRF_NUM) {
+          //for all integration points
+          for(int k = 0; k < num_gip_points; k++) {
+            svals[inx_trf][inx_shape_i][H2D_H1FE_VALUE][k] -= product * svals[inx_trf][inx_shape_j][H2D_H1FE_VALUE][k];
+            svals[inx_trf][inx_shape_i][H2D_H1FE_DX][k] -= product * svals[inx_trf][inx_shape_j][H2D_H1FE_DX][k];
+            svals[inx_trf][inx_shape_i][H2D_H1FE_DY][k] -= product * svals[inx_trf][inx_shape_j][H2D_H1FE_DY][k];
+          }
+
+          //move to the next transformation
+          if (inx_trf == H2D_TRF_IDENTITY)
+            done = true;
+          else {
+            inx_trf++;
+            if (inx_trf >= num_noni_trfs) //if all transformations were processed, move to the identity transformation
+              inx_trf = H2D_TRF_IDENTITY;
+          }
+        }
+        error_if(!done, "All transformation processed but identity transformation not found."); //identity transformation has to be the last transformation
+      }
+
+      //normalize
+      //calculate norm
+      double norm_squared = 0.0;
+      for(int k = 0; k < num_gip_points; k++) {
+        double sum = 0.0;
+        sum += sqr(svals[H2D_TRF_IDENTITY][inx_shape_i][H2D_H1FE_VALUE][k]);
+        sum += sqr(svals[H2D_TRF_IDENTITY][inx_shape_i][H2D_H1FE_DX][k]);
+        sum += sqr(svals[H2D_TRF_IDENTITY][inx_shape_i][H2D_H1FE_DY][k]);
+        norm_squared += gip_points[k][H2D_GIP2D_W] * sum;
+      }
+      double norm = sqrt(norm_squared);
+      assert_msg(finite(1/norm), "Norm (%g) is almost zero.", norm);
+
+      //for all transformations: normalize
+      int inx_trf = 0;
+      bool done = false;
+      while (!done && inx_trf < H2D_TRF_NUM) {
+        //for all integration points
+        for(int k = 0; k < num_gip_points; k++) {
+          svals[inx_trf][inx_shape_i][H2D_H1FE_VALUE][k] /= norm;
+          svals[inx_trf][inx_shape_i][H2D_H1FE_DX][k] /= norm;
+          svals[inx_trf][inx_shape_i][H2D_H1FE_DY][k] /= norm;
+        }
+
+        //move to the next transformation
+        if (inx_trf == H2D_TRF_IDENTITY)
+          done = true;
+        else {
+          inx_trf++;
+          if (inx_trf >= num_noni_trfs) //if all transformations were processed, move to the identity transformation
+            inx_trf = H2D_TRF_IDENTITY;
+        }
+      }
+      error_if(!done, "All transformation processed but identity transformation not found."); //identity transformation has to be the last transformation
     }
   }
 
@@ -171,12 +255,12 @@ namespace RefinementSelectors {
       ////DEBUG-BEGIN
       //double ref_x = gip_pt[H2D_GIP2D_X] * sub_trf.trf->m[0] + sub_trf.trf->t[0];
       //double ref_y = gip_pt[H2D_GIP2D_Y] * sub_trf.trf->m[1] + sub_trf.trf->t[1];
-      //scalar proj_value[H2D_H1FE_NUM] = {0, 0, 0};
+      //scalar proj_valueA[H2D_H1FE_NUM] = {0, 0, 0};
       //for(int i = 0; i < elem_proj.num_shapes; i++) {
       //  int shape_inx = elem_proj.shape_inxs[i];
-      //  proj_value[H2D_H1FE_VALUE] += elem_proj.shape_coefs[i] * shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
-      //  proj_value[H2D_H1FE_DX] += elem_proj.shape_coefs[i] * shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
-      //  proj_value[H2D_H1FE_DY] += elem_proj.shape_coefs[i] * shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
+      //  proj_valueA[H2D_H1FE_VALUE] += elem_proj.shape_coefs[i] * shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
+      //  proj_valueA[H2D_H1FE_DX] += elem_proj.shape_coefs[i] * shapeset->get_dx_value(shape_inx, ref_x, ref_y, 0);
+      //  proj_valueA[H2D_H1FE_DY] += elem_proj.shape_coefs[i] * shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
       //}
       //error_if(std::abs(proj_value[H2D_H1FE_VALUE] - proj_valueA[H2D_H1FE_VALUE]) > 1E-15
       //  || std::abs(proj_value[H2D_H1FE_DX] - proj_valueA[H2D_H1FE_DX]) > 1E-15

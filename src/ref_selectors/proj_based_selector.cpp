@@ -219,7 +219,7 @@ namespace RefinementSelectors {
         Element* sub_domains[2] = { base_element->sons[sons[version][0]], base_element->sons[sons[version][1]] };
         scalar **sub_rval[2] = { rval[sons[version][0]], rval[sons[version][1]] };
         std::vector<TrfShapeExp>* sub_svals[2] = { &svals[tr[version][0]], &svals[tr[version][1]] };
-        std::vector<TrfShapeExp>* sub_ortho_svals[2] = { &ortho_svals[sons[version][0]], &ortho_svals[sons[version][1]] };
+        std::vector<TrfShapeExp>* sub_ortho_svals[2] = { &ortho_svals[tr[version][0]], &ortho_svals[tr[version][1]] };
         calc_error_cand_element(mode, gip_points, num_gip_points
           , 2, sub_domains, sub_trfs, sub_rval
           , sub_svals, sub_ortho_svals
@@ -260,7 +260,7 @@ namespace RefinementSelectors {
 
     //check whether ortho-svals are available
     bool ortho_svals_available = true;
-    for(int i = 0; i <= num_sub && ortho_svals_available; i++)
+    for(int i = 0; i < num_sub && ortho_svals_available; i++)
       ortho_svals_available &= !sub_ortho_svals[i]->empty();
 
     //clenup of the cache
