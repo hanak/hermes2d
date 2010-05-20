@@ -63,7 +63,7 @@ namespace RefinementSelectors {
     return matrix;
   }
 
-  scalar L2ProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
+  scalar L2ProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemSubShapeFunc& sub_shape) {
     scalar total_value = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
       //get location and transform it
@@ -72,7 +72,7 @@ namespace RefinementSelectors {
       double ref_y = gip_pt[H2D_GIP2D_Y] * sub_trf.trf->m[1] + sub_trf.trf->t[1];
 
       //get value of a shape function
-      scalar shape_value = shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
+      scalar shape_value = shapeset->get_fn_value(sub_shape.inx, ref_x, ref_y, 0);
 
       //get value of ref. solution
       scalar ref_value;

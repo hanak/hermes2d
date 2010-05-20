@@ -74,7 +74,7 @@ namespace RefinementSelectors {
     return matrix;
   }
 
-  scalar HcurlProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) {
+  scalar HcurlProjBasedSelector::evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemSubShapeFunc& sub_shape) {
     double coef_curl = std::abs(sub_trf.coef_mx * sub_trf.coef_my);
     scalar total_value = 0;
     for(int gip_inx = 0; gip_inx < sub_gip.num_gip_points; gip_inx++) {
@@ -84,9 +84,9 @@ namespace RefinementSelectors {
       double ref_y = gip_pt[H2D_GIP2D_Y] * sub_trf.trf->m[1] + sub_trf.trf->t[1];
 
       //get value of a shape function
-      scalar shape_value0 = shapeset->get_fn_value(shape_inx, ref_x, ref_y, 0);
-      scalar shape_value1 = shapeset->get_fn_value(shape_inx, ref_x, ref_y, 1);
-      scalar shape_curl = shapeset->get_dx_value(shape_inx, ref_x, ref_y, 1) - shapeset->get_dy_value(shape_inx, ref_x, ref_y, 0);
+      scalar shape_value0 = shapeset->get_fn_value(sub_shape.inx, ref_x, ref_y, 0);
+      scalar shape_value1 = shapeset->get_fn_value(sub_shape.inx, ref_x, ref_y, 1);
+      scalar shape_curl = shapeset->get_dx_value(sub_shape.inx, ref_x, ref_y, 1) - shapeset->get_dy_value(sub_shape.inx, ref_x, ref_y, 0);
 
       //get value of ref. solution
       scalar ref_value0 = sub_trf.coef_mx * sub_gip.rvals[H2D_HCFE_VALUE0][gip_inx];

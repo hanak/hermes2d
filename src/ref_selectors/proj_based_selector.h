@@ -17,6 +17,7 @@
 #define __H2D_REFINEMENT_PROJ_BASED_SELECTOR_H
 
 #include "../tuple.h"
+#include "../matrix.h"
 #include "optimum_selector.h"
 
 namespace RefinementSelectors {
@@ -37,6 +38,8 @@ namespace RefinementSelectors {
    *  \section s_override Expanding
    *  In order to implement a support for a new space or a new approach to calculation of squared error,
    *  implement following methods:
+   *  - precalc_shapes() [optional]
+   *  - precalc_ortho_shapes() [optional]
    *  - precalc_ref_solution()
    *  - build_projection_matrix()
    *  - evaluate_rhs_subdomain()
@@ -55,6 +58,39 @@ namespace RefinementSelectors {
      *  \param[in] weight_p An error weight of P-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_P.
      *  \param[in] weight_aniso An error weight of ANISO-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_ANISO. */
     void set_error_weights(double weight_h = H2DRS_DEFAULT_ERR_WEIGHT_H, double weight_p = H2DRS_DEFAULT_ERR_WEIGHT_P, double weight_aniso = H2DRS_DEFAULT_ERR_WEIGHT_ANISO);
+
+  protected: //evaluated shape basis
+    class TrfShapeExp {
+      int num_expansion; ///< A number of expansions.
+      double** values; ///< Values. The first index is index of a functions expansion, the second index is an index of a an integration point.
+    public:
+      TrfShapeExp() : num_expansion(0), values(NULL) {};
+      TrfShapeExp(int num_expansion, int num_gip) : num_expansion(num_expansion), values(new_matrix<double>(num_expansion, num_gip)) {};
+      virtual ~TrfShapeExp() { delete[] values; };
+      inline double* operator[](int inx_expansion) {
+        assert_msg(inx_expansion < num_expansion, "Index (%d) of an expansion out of range [0, %d]", inx_expansion, num_expansion-1);
+        return values[inx_expansion];
+      };
+      inline bool empty() { return values == NULL; };
+    };
+
+    /// Evaluated shapes for all possible transformations for all points. The first index is a transformation, the second index is an index of a shape function.
+    typedef std::vector<TrfShapeExp> TrfShape[H2D_TRF_NUM];
+
+    bool cached_shape_vals_valid[H2D_NUM_MODES]; ///< True if shape values were already initialized.
+    TrfShape cached_shape_ortho_vals[H2D_NUM_MODES]; ///< Precalculated valus of orthogonalized shape functions.
+    TrfShape cached_shape_vals[H2D_NUM_MODES]; ///< Precalculate values of shape functions.
+
+    /// Calculates values of shape function at GIP for all transformations.
+    /**
+     *  \param[in] trfs A transformations. The array has to have ::H2D_TRF_NUM elements.
+     *  \param[in] num_noni_trfs A number of transformations which are not identity.
+     */
+    virtual void precalc_shapes(const int mode, const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& svals) {};
+
+    /// Calculates values of orthogonalized shape function at GIP for all transformations.
+    virtual void precalc_ortho_shapes(const int mode, const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& ortho_svals) {};
+
   protected:
     /// Constructor.
     /** Intializes attributes, projection matrix cache (ProjBasedSelector::proj_matrix_cache), and allocates rhs cache (ProjBasedSelector::rhs_cache).
@@ -116,7 +152,8 @@ namespace RefinementSelectors {
      *  Contents of the array is valid in the method calc_error_cand_element().
      *  The array is allocated in the constructor, the size of the array is equal to the maximum index of a shape function + 1.
      *  \note It is kept here in order to avoid frequent reallocating. */
-    ValueCacheItem<scalar>* rhs_cache;
+    std::vector<ValueCacheItem<scalar>> nonortho_rhs_cache;
+    std::vector<ValueCacheItem<scalar>> ortho_rhs_cache;
 
     double error_weight_h; ///< A coefficient that multiplies error of H-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_H.
     double error_weight_p; ///< A coefficient that multiplies error of P-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_P.
@@ -153,17 +190,18 @@ namespace RefinementSelectors {
      *  \param[in] sub_domains Subdomains (elements of a reference mesh) that occupy the element of a candidate. The first index is an index of the subdomain.
      *  \param[in] sub_trfs Transformation from a reference domain of a subdomain to a reference domain of the element of a candidate. The first index is an index of the subdomain.
      *  \param[in] sub_rvals Values at integration points for every subdomain. Contents of this array (the second index) is defined by the method precalc_ref_solution(). The first index is an index of the subdomain.
-     *  \param[in] coefs_mx An array of coefficients that scale df/dx for each subdomain. A coefficient represents effects of a transformation \a sub_trfs on df/dx. The first index is an index of the subdomain.
-     *  \param[in] coefs_my An array of coefficients that scale df/dy for each subdomain. A coefficient represents effects of a transformation \a sub_trfs on df/dy. The first index is an index of the subdomain.
+     *  \param[in] sub_nonortho_svals
+     *  \param[in] sub_ortho_svals
      *  \param[in] info Information about candidates: range of orders, etc.
      *  \param[out] errors_squared Calculated squared errors for all orders specified through \a info. */
-    void calc_error_cand_element(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, double* coefs_mx, double* coefs_my, const CandsInfo& info, CandElemProjError errors_squared);
+    void calc_error_cand_element(const int mode, double3* gip_points, int num_gip_points, const int num_sub, Element** sub_domains, Trf** sub_trfs, scalar*** sub_rvals, std::vector<TrfShapeExp>** sub_nonortho_svals, std::vector<TrfShapeExp>** sub_ortho_svals, const CandsInfo& info, CandElemProjError errors_squared);
 
   protected: //projection
     /// Projection of an element of a candidate.
     struct ElemProj {
       int* shape_inxs; ///< Used shape indices
       int num_shapes; ///< A number of used shape indices.
+      std::vector<TrfShapeExp>& svals; ///< A precalculated shape-function values. Empty is not defined.
       scalar* shape_coefs; ///< Coefficients of shape indices of a projection.
       int max_quad_order; ///< An encoded maximum order of the projection. If triangle, the vertical order is equal to the horizontal order.
     };
@@ -181,6 +219,12 @@ namespace RefinementSelectors {
       Trf* trf; ///< A transformation.
       double coef_mx; ///< A coefficient that scales df/dx for each subdomain. A coefficient represents effects of a transformation \a trf on df/dx.
       double coef_my; ///< A coefficient that scales df/dy for each subdomain. A coefficient represents effects of a transformation \a trf on df/dy.
+    };
+
+    /// A shape function on subdomain of an element.
+    struct ElemSubShapeFunc {
+      int inx; ///< An index of a shape function.
+      TrfShapeExp& svals; ///< Evaluate values of a shape function. If TrfShapeExp::empty(), no precalculated values are available.
     };
 
     /// Returns an array of values of the reference solution at integration points.
@@ -212,9 +256,9 @@ namespace RefinementSelectors {
      *  \param[in] sub_elem An element of a reference mesh that corresponds to a subdomain.
      *  \param[in] sub_gip Integration points. Locations of integration points are defined in the reference domain. Use \a sub_trf to transform it to the reference domain of an element of a candidate.
      *  \param[in] sub_trf A transformation from a reference domain of a subdomain to the reference domain of an element of a candidate.
-     *  \param[in] shape_inx An index of a shape function.
+     *  \param[in] sub_shape Information about a shape function: shape index and calculated expansions at integration points, if any.
      *  \return A value of the righ-hand size of a given shape function. */
-    virtual scalar evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx) = 0;
+    virtual scalar evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemSubShapeFunc& sub_shape) = 0;
 
     /// Evaluates an squared error of a projection of an element of a candidate onto subdomains.
     /** Override to calculate an error using a provided projection and subdomains.

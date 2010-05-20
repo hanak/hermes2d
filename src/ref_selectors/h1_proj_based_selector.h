@@ -58,15 +58,15 @@ namespace RefinementSelectors {
 
     /// Builds projection matrix using a given set of shapes.
     /**  Overriden function. For details, see ProjBasedSelector::build_projection_matrix(). */
-    virtual double** build_projection_matrix(double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes); ///< Builds a projection matrix.
+    virtual double** build_projection_matrix(double3* gip_points, int num_gip_points, const int* shape_inx, const int num_shapes);
 
     /// Evaluates a value of the right-hande side in a subdomain.
     /**  Overriden function. For details, see ProjBasedSelector::evaluate_rhs_subdomain(). */
-    virtual scalar evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, int shape_inx); ///> Evaluate a single value of the right side for a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
+    virtual scalar evaluate_rhs_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemSubShapeFunc& sub_shape);
 
     /// Evaluates an squared error of a projection of an element of a candidate onto subdomains.
     /**  Overriden function. For details, see ProjBasedSelector::evaluate_error_squared_subdomain(). */
-    virtual double evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj); ///> Evaluate an error of a projection on a sub-element. Provided GIP are defined on a reference domain. Provided transformation will transform form a reference domain of a sub-element to a reference domain of an element.
+    virtual double evaluate_error_squared_subdomain(Element* sub_elem, const ElemGIP& sub_gip, const ElemSubTrf& sub_trf, const ElemProj& elem_proj);
 
   protected: //defaults
     static H1Shapeset default_shapeset; ///< A default shapeset.
