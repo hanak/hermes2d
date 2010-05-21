@@ -3,9 +3,11 @@
 
 using namespace RefinementSelectors;
 
-///  This test makes sure that the benchmark "layer" works correctly.
-/**
- *   Parameters
+/** \addtogroup t_bench_layer Benchmarks/Layer
+ *  \{
+ *  \brief This test makes sure that the benchmark "layer" works correctly.
+ *
+ *  \section s_params Parameters
  *   - INIT_REF_NUM=2
  *   - P_INIT=1
  *   - THRESHOLD=0.3
@@ -17,8 +19,9 @@ using namespace RefinementSelectors;
  *   - NDOF_STOP=60000
  *   - SLOPE = 60
  *
- *   Results for given parameters
+ *  \section s_res Results
  *   - DOFs: 2878
+ *   - Iterations: 23 (the last iteration at which ERR_STOP is fulfilled)
  */
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
@@ -244,3 +247,5 @@ int main(int argc, char* argv[])
     return ERROR_FAILURE;
   }
 }
+
+/**  \{ */

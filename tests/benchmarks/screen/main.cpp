@@ -3,9 +3,11 @@
 
 using namespace RefinementSelectors;
 
-/// This test makes sure that the benchmark "screen" works correctly.
-/**
- *   Parameters
+/** \addtogroup t_bench_screen Benchmarks/Screen
+ *  \{
+ *  \brief This test makes sure that the benchmark "screen" works correctly.
+ *
+ *  \section s_params Parameters
  *   - P_INIT=1
  *   - THERSHOLD=0.5
  *   - STRATEGY=1
@@ -16,7 +18,7 @@ using namespace RefinementSelectors;
  *   - NDOF_STOP=40000
  *   - ERROR_WEIGHTS=(H: 1; P: 1; ANISO: 1)
  *
- *   Results for given parameters
+ *  \section s_res Results
  *   - DOFs: 3994
  *   - Error estimate: 9.22E-2%
  *   - Iterations: 36 (the last iteration at which ERR_STOP is fulfilled)
@@ -215,3 +217,4 @@ int main(int argc, char* argv[])
   }
 }
 
+/**  \{ */
