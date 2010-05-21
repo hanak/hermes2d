@@ -18,6 +18,8 @@ using namespace RefinementSelectors;
  *
  *   Results for given parameters
  *   - DOFs: 3994
+ *   - Error estimate: 9.22E-2%
+ *   - Iterations: 36 (the last iteration at which ERR_STOP is fulfilled)
  */
 
 const int P_INIT = 1;             // Initial polynomial degree of all mesh elements.
