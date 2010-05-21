@@ -11,6 +11,7 @@ namespace RefinementSelectors {
   ProjBasedSelector::ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order)
     : OptimumSelector(cand_list, conv_exp, max_order, shapeset, vertex_order, edge_bubble_order)
     , error_weight_h(H2DRS_DEFAULT_ERR_WEIGHT_H), error_weight_p(H2DRS_DEFAULT_ERR_WEIGHT_P), error_weight_aniso(H2DRS_DEFAULT_ERR_WEIGHT_ANISO)
+    , warn_uniform_orders(false)
   {
     //clean svals initialization state
     std::fill(cached_shape_vals_valid, cached_shape_vals_valid + H2D_NUM_MODES, false);
@@ -192,6 +193,14 @@ namespace RefinementSelectors {
       precalc_ortho_shapes(gip_points, num_gip_points, trfs, num_noni_trfs, shape_indices[mode], max_shape_inx[mode], cached_shape_ortho_vals[mode]);
       precalc_shapes(gip_points, num_gip_points, trfs, num_noni_trfs, shape_indices[mode], max_shape_inx[mode], cached_shape_vals[mode]);
       cached_shape_vals_valid[mode] = true;
+
+      //issue a warning if ortho values are defined and the selected cand_list might benefit from that but it cannot because elements do not have uniform orders
+      if (!warn_uniform_orders && mode == H2D_MODE_QUAD && !cached_shape_ortho_vals[mode][H2D_TRF_IDENTITY].empty()) {
+        warn_uniform_orders = true;
+        if (cand_list == H2D_H_ISO || cand_list == H2D_H_ANISO || cand_list == H2D_P_ISO || cand_list == H2D_HP_ISO || cand_list == H2D_HP_ANISO_H) {
+          warn_if(!info_h.uniform_orders || !info_aniso.uniform_orders || !info_p.uniform_orders, "Possible inefficiency: %s might be more efficient if the input mesh contains elements with uniform orders strictly.", get_cand_list_str(cand_list));
+        }
+      }
     }
     TrfShape& svals = cached_shape_vals[mode];
     TrfShape& ortho_svals = cached_shape_ortho_vals[mode];

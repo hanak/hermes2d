@@ -169,6 +169,14 @@ namespace RefinementSelectors {
      *  \param[in] edge_bubble_order A range of orders for edge and bubble functions. Use an empty range (i.e. Range<int>()) to skip edge and bubble functions. */
     ProjBasedSelector(CandList cand_list, double conv_exp, int max_order, Shapeset* shapeset, const Range<int>& vertex_order, const Range<int>& edge_bubble_order);
 
+  protected: //internal logic
+    /// True if the selector has already warned about possible inefficiency.
+    /** If OptimumSelector::cand_list does not generate candidates with elements of
+     *  non-uniform orders and if the precalculate orthonormal base is available,
+     *  the user should not use non-uniform order in the meshed in
+     *  order to gain efficiency. */
+    bool warn_uniform_orders;
+
   protected: //error evaluation
 #define H2DRS_VALCACHE_INVALID 0 ///< State of value cache: item contains undefined or invalid value. \ingroup g_selectors
 #define H2DRS_VALCACHE_VALID 1 ///< State of value cache: item contains a valid value. \ingroup g_selectors
