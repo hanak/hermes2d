@@ -294,7 +294,7 @@ namespace RefinementSelectors {
         bool use_ortho = ortho_svals_available && order_perm.get_order_h() == order_perm.get_order_v();
 
         //select a cache
-        std::vector<ValueCacheItem<scalar>>& rhs_cache = use_ortho ? ortho_rhs_cache : nonortho_rhs_cache;
+        std::vector< ValueCacheItem<scalar> >& rhs_cache = use_ortho ? ortho_rhs_cache : nonortho_rhs_cache;
         std::vector<TrfShapeExp>** sub_svals = use_ortho ? sub_ortho_svals : sub_nonortho_svals;
 
         //calculate projection matrix iff no ortho is used
@@ -315,7 +315,8 @@ namespace RefinementSelectors {
             int shape_inx = shape_inxs[k];
             ValueCacheItem<scalar>& shape_rhs_cache = rhs_cache[shape_inx];
             if (!shape_rhs_cache.is_valid()) {
-              ElemSubShapeFunc this_sub_shape = { shape_inx, this_sub_svals.empty() ? TrfShapeExp() : this_sub_svals[shape_inx] };
+              TrfShapeExp empty_sub_vals;
+              ElemSubShapeFunc this_sub_shape = { shape_inx, this_sub_svals.empty() ? empty_sub_vals : this_sub_svals[shape_inx] };
               shape_rhs_cache.set(shape_rhs_cache.get() + evaluate_rhs_subdomain(this_sub_domain, this_sub_gip, this_sub_trf, this_sub_shape));
             }
           }

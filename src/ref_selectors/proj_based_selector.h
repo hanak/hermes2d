@@ -95,7 +95,7 @@ namespace RefinementSelectors {
       /** \param[in] inx_expansion An index of a function expansion.
        *  \return A pointer to an array of values of a function expansion at integration points. The returned pointer should not be stored outside the calling method or deallocated. */
       inline double* operator[](int inx_expansion) {
-        assert_msg(values == NULL, "Function expansions not allocated.");
+        assert_msg(values != NULL, "Function expansions not allocated.");
         assert_msg(inx_expansion < num_expansion, "Index (%d) of an expansion out of range [0, %d]", inx_expansion, num_expansion-1);
         return values[inx_expansion];
       };
@@ -219,8 +219,8 @@ namespace RefinementSelectors {
      *  Contents of the array is valid in the method calc_error_cand_element().
      *  The array is allocated in the constructor, the size of the array is equal to the maximum index of a shape function + 1.
      *  \note It is kept here in order to avoid frequent reallocating. */
-    std::vector<ValueCacheItem<scalar>> nonortho_rhs_cache;
-    std::vector<ValueCacheItem<scalar>> ortho_rhs_cache;
+    std::vector< ValueCacheItem<scalar> > nonortho_rhs_cache;
+    std::vector< ValueCacheItem<scalar> > ortho_rhs_cache;
 
     double error_weight_h; ///< A coefficient that multiplies error of H-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_H.
     double error_weight_p; ///< A coefficient that multiplies error of P-candidate. The default value is ::H2DRS_DEFAULT_ERR_WEIGHT_P.
