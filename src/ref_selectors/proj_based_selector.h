@@ -60,27 +60,56 @@ namespace RefinementSelectors {
     void set_error_weights(double weight_h = H2DRS_DEFAULT_ERR_WEIGHT_H, double weight_p = H2DRS_DEFAULT_ERR_WEIGHT_P, double weight_aniso = H2DRS_DEFAULT_ERR_WEIGHT_ANISO);
 
   protected: //evaluated shape basis
+    /// A transform shaped function expansions.
+    /** The contents of the class can be accessed through an array index operator.
+     *  The first index is an index of the function expansion, the second index is
+     *  and index of an integration point.
+     *
+     *  \important Use strictly through reference.
+     *  This allocates an array internally through the method allocate().
+     *  If the use attempt to assign an instance which is not empty (i.e., the array is not allocate),
+     *  an error will be issued. Assigning an empty instance will cause
+     *  deallocation of the internal structures. */
     class TrfShapeExp {
       int num_gip; ///< A number of integration points.
       int num_expansion; ///< A number of expansions.
       double** values; ///< Values. The first index is index of a functions expansion, the second index is an index of a an integration point.
     public:
-      TrfShapeExp() : num_expansion(0), values(NULL) {};
+      /// A default contructor. Creates an empty instance.
+      TrfShapeExp() : num_gip(0), num_expansion(0), values(NULL) {};
+
+      /// Desructor.
+      virtual ~TrfShapeExp() { delete[] values; };
+
+      /// Allocates a space for function expansions.
+      /** \param[in] num_expansion A number of expansions.
+       *  \param[in] num_gip A number of itegration points. */
       void allocate(int num_expansion, int num_gip) {
         delete[] values;
         values = new_matrix<double>(num_expansion, num_gip);
         this->num_expansion = num_expansion;
         this->num_gip = num_gip;
       };
-      virtual ~TrfShapeExp() { delete[] values; };
+
+      /// Operator for accessing of contents.
+      /** \param[in] inx_expansion An index of a function expansion.
+       *  \return A pointer to an array of values of a function expansion at integration points. The returned pointer should not be stored outside the calling method or deallocated. */
       inline double* operator[](int inx_expansion) {
+        assert_msg(values == NULL, "Function expansions not allocated.");
         assert_msg(inx_expansion < num_expansion, "Index (%d) of an expansion out of range [0, %d]", inx_expansion, num_expansion-1);
         return values[inx_expansion];
       };
+
+      /// Returns true if the instance is empty, i.e., the method allocate() was not called yet.
+      /** \return True if the instance is empty, i.e., the method allocate() was not called yet. */
       inline bool empty() { return values == NULL; };
+
+      /// Assignment operator. Prevent unauthorized copying of the pointer.
+      /** This method prevents a user from copying allocated internal structures
+       *  because C++ does not support garbage collection. */
       const TrfShapeExp& operator=(const TrfShapeExp& other) {
         delete[] values; values = NULL;
-        error_if(other.values != NULL, "Unable to a non-empty values. Use references instead.");
+        error_if(other.values != NULL, "Unable to assign a non-empty values. Use references instead.");
         return *this;
       };
     };
@@ -93,13 +122,40 @@ namespace RefinementSelectors {
     TrfShape cached_shape_vals[H2D_NUM_MODES]; ///< Precalculate values of shape functions.
 
     /// Calculates values of shape function at GIP for all transformations.
-    /**
-     *  \param[in] trfs A transformations. The array has to have ::H2D_TRF_NUM elements.
-     *  \param[in] num_noni_trfs A number of transformations which are not identity.
+    /** Override this method to supply a pre-calculated vales of shape function expansions
+     *  at integration points. If override, the method has to supply precalculate expansions
+     *  for all transformations plus an identity transformation. An index of the identity
+     *  transformation is ::H2D_TRF_IDENTITY.
+     *  \param[in] gip_points Integration points. The first index is an index of an integration point, the second index is an element of the enum ::GIP2DIndices.
+     *  \param[in] num_gip_points A number of integration points.
+     *  \param[in] trfs A transformations. The array has ::H2D_TRF_NUM elements. The index of the identity transformation is ::H2D_TRF_IDENTITY.
+     *  \param[in] num_noni_trfs A number of transformations which are not identity. This number might be lower than than ::H2D_TRF_NUM.
+     *  \param[in] shapes Shape functions.
+     *  \param[in] max_shape_inx A maximum index of a shape function. This is used to resize a sub-array of the array \a svals.
+     *  \param[out] svals A precalculated values of shape functions. The user has to resize the array of shape functions for every
+     *             used transformation including the identity to the a size defined by \a max_shape_inx. The system will assume that shape functions
+     *             are precalculated if the array corresponding to the identity function is not empty.
      */
     virtual void precalc_shapes(const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& svals) {};
 
     /// Calculates values of orthogonalized shape function at GIP for all transformations.
+    /** Override this method to supply a pre-calculated vales of orthonormalized shape function expansions
+     *  at integration points. If override, the method has to supply precalculate expansions
+     *  for all transformations plus an identity transformation. An index of the identity
+     *  transformation is ::H2D_TRF_IDENTITY.
+     *
+     *  If overriden and if this method orthonormalizes shape functions at the integration points, it is suggested
+     *  to use the method precalc_shapes() in order to obtain initial values of shape functions at integration points.
+     *  \param[in] gip_points Integration points. The first index is an index of an integration point, the second index is an element of the enum ::GIP2DIndices.
+     *  \param[in] num_gip_points A number of integration points.
+     *  \param[in] trfs A transformations. The array has ::H2D_TRF_NUM elements. The index of the identity transformation is ::H2D_TRF_IDENTITY.
+     *  \param[in] num_noni_trfs A number of transformations which are not identity. This number might be lower than than ::H2D_TRF_NUM.
+     *  \param[in] shapes Shape functions.
+     *  \param[in] max_shape_inx A maximum index of a shape function. This is used to resize a sub-array of the array \a svals.
+     *  \param[out] svals A precalculated values of shape functions. The user has to resize the array of shape functions for every
+     *             used transformation including the identity to the a size defined by \a max_shape_inx. The system will assume that shape functions
+     *             are precalculated if the array corresponding to the identity function is not empty.
+     */
     virtual void precalc_ortho_shapes(const double3* gip_points, const int num_gip_points, const Trf* trfs, const int num_noni_trfs, const std::vector<ShapeInx>& shapes, const int max_shape_inx, TrfShape& ortho_svals) {};
 
   protected:
